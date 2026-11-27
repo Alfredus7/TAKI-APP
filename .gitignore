@@ -2,6 +2,7 @@
 venv/
 .venv/
 env/
+ENV/
 
 # Archivos de Python
 __pycache__/
@@ -9,14 +10,18 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Base de datos local (¡No subir!)
+# Base de datos local SQLite
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
 db/
 
 # Archivos de configuración y secretos
 .env
+.env.*
 config.py
 
 # Archivos del sistema operativo
