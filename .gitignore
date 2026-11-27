@@ -10,14 +10,10 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Base de datos local SQLite
-*.db
-*.sqlite
-*.sqlite3
+# Archivos temporales de SQLite (opcional si no quieres subir journals/WAL)
 *.db-journal
 *.db-wal
 *.db-shm
-db/
 
 # Archivos de configuración y secretos
 .env
