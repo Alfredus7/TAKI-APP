@@ -9,7 +9,7 @@ from controllers.admin_controller import admin_bp
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    app.secret_key = "cambia-esta-clave-secreta-en-produccion"
+    app.secret_key = "9eafd5072e5c11995fccfe29c6e87f4b"
 
     init_db()
 
