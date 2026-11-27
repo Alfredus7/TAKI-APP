@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Calificar servicio - TEKI{% endblock %}
+
+{% block content %}
+<div class="dash page-narrow">
+    <div class="page-head">
+        <div>
+            <h1>Calificar servicio</h1>
+            <p class="muted">Tu opinión nos ayuda a mantener un traslado seguro y puntual</p>
+        </div>
+    </div>
+
+    <section class="card">
+        <div class="trip-summary">
+            <div>
+                <div class="trip-route">{{ servicio.origen }} → {{ servicio.destino }}</div>
+                <small class="muted">
+                    {% if servicio.tipo %}{{ servicio.tipo }} · {% endif %}
+                    {{ servicio.fecha_solicitud }}
+                    {% if servicio.conductor_nombre %} · Conductor: {{ servicio.conductor_nombre }}{% endif %}
+                </small>
+            </div>
+            {% if servicio.precio %}
+            <span class="badge badge-orange">Bs {{ "%.2f"|format(servicio.precio|float) }}</span>
+            {% endif %}
+        </div>
+
+        <form method="POST" action="{{ url_for('cliente.calificar', id_servicio=servicio.id) }}" class="form">
+            <fieldset class="rating-group full">
+                <legend>Atención del conductor</legend>
+                <div class="rating-header">
+                    <span class="muted">Puntualidad, trato y comunicación</span>
+                    <span class="rating-label-text" id="label-atencion">Selecciona una nota</span>
+                </div>
+                <div class="star-row" data-target="label-atencion">
+                    {% for i in range(5, 0, -1) %}
+                    <input type="radio" id="atencion-{{ i }}" name="atencion" value="{{ i }}" required>
+                    <label for="atencion-{{ i }}" title="{{ i }} estrellas">★</label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            <fieldset class="rating-group full">
+                <legend>Calidad del transporte</legend>
+                <div class="rating-header">
+                    <span class="muted">Estado del vehículo, seguridad y comodidad</span>
+                    <span class="rating-label-text" id="label-transporte">Selecciona una nota</span>
+                </div>
+                <div class="star-row" data-target="label-transporte">
+                    {% for i in range(5, 0, -1) %}
+                    <input type="radio" id="transporte-{{ i }}" name="transporte" value="{{ i }}" required>
+                    <label for="transporte-{{ i }}" title="{{ i }} estrellas">★</label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            <div class="rating-actions full">
+                <a href="{{ url_for('cliente.historial') }}" class="btn btn-outline">Volver al historial</a>
+                <button type="submit" class="btn btn-primary">Enviar calificación</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<script>
+(function () {
+    const textos = {
+        1: "1/5 · Muy mala",
+        2: "2/5 · Regular",
+        3: "3/5 · Aceptable",
+        4: "4/5 · Muy buena",
+        5: "5/5 · Excelente"
+    };
+
+    document.querySelectorAll(".star-row").forEach((row) => {
+        const labelEl = document.getElementById(row.dataset.target);
+        row.querySelectorAll('input[type="radio"]').forEach((radio) => {
+            radio.addEventListener("change", () => {
+                if (labelEl) {
+                    labelEl.textContent = textos[radio.value] || `${radio.value}/5`;
+                }
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

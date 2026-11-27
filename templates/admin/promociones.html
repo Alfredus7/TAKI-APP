@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import badge, accion %}
+{% block title %}Promociones - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Promociones</h1>
+        <p class="muted">Descuentos y códigos promocionales</p>
+    </div>
+</div>
+
+<div class="grid-main">
+    <section class="card">
+        <h2>Promociones creadas</h2>
+        {% for p in promociones %}
+        <div class="row-item">
+            <strong>{{ p.codigo }}</strong>
+            <span>{{ '%g'|format(p.descuento) }}% · {{ p.tipo_servicio or 'Todos los servicios' }}</span>
+            <span class="muted">{{ p.fecha_inicio }} → {{ p.fecha_fin }}</span>
+            <span>{{ p.descripcion or '' }}</span>
+            {{ badge('vigente' if p.activa else 'inactivo') }}
+            {{ accion(url_for('admin.promocion_estado', id_promocion=p.id_promocion),
+                      'Desactivar' if p.activa else 'Activar',
+                      'btn-dark', {'activa': 0 if p.activa else 1}) }}
+        </div>
+        {% else %}
+        <p class="empty">Aún no hay promociones.</p>
+        {% endfor %}
+    </section>
+
+    <section class="card">
+        <h2>Nueva promoción</h2>
+        <form method="post" action="{{ url_for('admin.promocion_crear') }}" class="form-grid">
+            <label>Código
+                <input type="text" name="codigo" required maxlength="20" style="text-transform: uppercase;">
+            </label>
+            <label>Descuento (%)
+                <input type="number" name="descuento" min="1" max="100" step="1" required>
+            </label>
+            <label class="full">Descripción
+                <input type="text" name="descripcion" maxlength="120">
+            </label>
+            <label>Válida desde
+                <input type="date" name="fecha_inicio" required>
+            </label>
+            <label>Válida hasta
+                <input type="date" name="fecha_fin" required>
+            </label>
+            <label class="full">Aplica a
+                <select name="tipo_servicio">
+                    <option value="">Todos los servicios</option>
+                    {% for t in tipos %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                </select>
+            </label>
+            <div class="form-actions full">
+                <button class="btn btn-primary" type="submit">Crear promoción</button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

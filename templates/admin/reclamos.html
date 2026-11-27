@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import badge %}
+{% block title %}Reclamos - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Gestión de reclamos</h1>
+        <p class="muted">Consultas, reclamos y sugerencias de los usuarios</p>
+    </div>
+</div>
+
+<form method="get" class="toolbar">
+    <select name="tipo">
+        <option value="">Todos los tipos</option>
+        {% for t in tipos %}<option value="{{ t }}" {{ 'selected' if filtros.tipo == t }}>{{ t }}</option>{% endfor %}
+    </select>
+    <select name="estado">
+        <option value="">Todos los estados</option>
+        {% for e in estados %}<option value="{{ e }}" {{ 'selected' if filtros.estado == e }}>{{ e|replace('_', ' ') }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-dark" type="submit">Filtrar</button>
+</form>
+
+{% for c in consultas %}
+<section class="card">
+    <div class="page-head">
+        <div>
+            <span class="badge badge-orange">{{ c.tipo }}</span>
+            {{ badge(c.estado) }}
+            <strong>{{ c.usuario }}</strong>
+            <span class="muted">({{ c.rol }}) · {{ c.fecha }}</span>
+            {% if c.id_servicio %}
+            · <a href="{{ url_for('admin.servicio_detalle', id_servicio=c.id_servicio) }}">Servicio #{{ c.id_servicio }}</a>
+            {% endif %}
+        </div>
+        <form method="post" action="{{ url_for('admin.reclamo_estado', id_consulta=c.id_consulta) }}" class="inline-form">
+            <select name="estado">
+                {% for e in estados %}<option value="{{ e }}" {{ 'selected' if c.estado == e }}>{{ e|replace('_', ' ') }}</option>{% endfor %}
+            </select>
+            <button class="btn btn-primary" type="submit">Actualizar</button>
+        </form>
+    </div>
+    <p class="mensaje">{{ c.mensaje }}</p>
+</section>
+{% else %}
+<section class="card"><p class="empty">No hay consultas con esos filtros.</p></section>
+{% endfor %}
+{% endblock %}

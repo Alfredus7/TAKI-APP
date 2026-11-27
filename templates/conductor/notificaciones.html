@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Notificaciones - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Notificaciones</h1>
+        <p class="muted">Alertas sobre solicitudes y servicios</p>
+    </div>
+</div>
+
+<section class="card">
+    {% for n in notificaciones %}
+    <div class="row-item {{ 'unread' if n.nueva }}">
+        <span class="badge {{ 'badge-orange' if n.tipo == 'solicitud' else 'badge-blue' if n.tipo == 'servicio' else 'badge-gray' }}">{{ n.tipo }}</span>
+        <span>
+            <strong>{{ n.titulo }}</strong><br>
+            <span class="muted">{{ n.mensaje }}</span>
+        </span>
+        <span class="muted">{{ n.fecha }}</span>
+        {% if n.id_servicio %}
+        <a class="btn btn-dark" href="{{ url_for('conductor.servicio', id_servicio=n.id_servicio) }}">Ver</a>
+        {% elif n.tipo == 'solicitud' %}
+        <a class="btn btn-dark" href="{{ url_for('conductor.panel') }}">Ver</a>
+        {% endif %}
+    </div>
+    {% else %}
+    <p class="empty">No tienes notificaciones.</p>
+    {% endfor %}
+</section>
+{% endblock %}

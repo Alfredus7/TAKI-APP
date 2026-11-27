@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Atención al cliente - TEKI{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Atención al cliente</h1>
+        <p class="muted">Envíanos consultas, reclamos o sugerencias</p>
+    </div>
+</div>
+
+<section class="card">
+    <form method="POST" action="{{ url_for('cliente.atencion') }}" class="form-grid">
+        <label>Tipo
+            <select name="tipo" required>
+                <option value="consulta">Consulta</option>
+                <option value="reclamo">Reclamo</option>
+                <option value="sugerencia">Sugerencia</option>
+            </select>
+        </label>
+        <label>Servicio relacionado (opcional)
+            <select name="servicio_id">
+                <option value="">Ninguno</option>
+                {% for s in servicios %}
+                <option value="{{ s.id }}">{{ s.fecha_solicitud }} · {{ s.origen }} → {{ s.destino }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="full">Mensaje
+            <textarea name="mensaje" rows="5" required></textarea>
+        </label>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Enviar</button>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Mis solicitudes</h2>
+    {% for c in casos %}
+    <div class="row-item">
+        <span class="badge badge-orange">{{ c.tipo }}</span>
+        <span>{{ c.mensaje }}</span>
+        <span class="badge badge-gray">{{ c.estado|replace('_',' ') }}</span>
+    </div>
+    {% else %}
+    <p class="empty">No tienes solicitudes registradas.</p>
+    {% endfor %}
+</section>
+{% endblock %}

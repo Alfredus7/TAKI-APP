@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block title %}Panel del conductor - TEKI{% endblock %}
+
+{% block content %}
+{# Formatea montos: sin decimales si es entero #}
+{% macro bs(v) -%}{{ '%.0f'|format(v) if (v|float) == (v|float)|round(0) else '%.2f'|format(v) }}{%- endmacro %}
+{# Variación respecto a ayer; si ayer no hubo datos no se inventa un porcentaje #}
+{% macro vs_ayer(v) -%}
+{%- if v is none %}Sin datos de ayer{% elif v > 0 %}↑ +{{ v }}% vs ayer{% elif v < 0 %}↓ {{ v }}% vs ayer{% else %}Igual que ayer{% endif -%}
+{%- endmacro %}
+
+<div class="dash">
+    <!-- Banner: saludo + disponibilidad -->
+    <header class="hero">
+        <div class="hero-main">
+            <span class="avatar avatar-lg">{{ (session.nombre or 'C')[:1]|upper }}</span>
+            <div>
+                <h1>¡Hola, <span>{{ session.nombre }}</span>!</h1>
+                <small>Conductor TEKI{% if conductor.descripcion_vehiculo %} · {{ conductor.descripcion_vehiculo }}{% endif %}</small>
+            </div>
+        </div>
+
+        <div class="hero-actions">
+            <form method="post" action="{{ url_for('conductor.alternar_disponibilidad') }}">
+                <button class="status-toggle {{ 'on' if conductor.disponibilidad == 'disponible' else '' }}" type="submit">
+                    <span class="dot"></span>
+                    <span>{{ 'En línea' if conductor.disponibilidad == 'disponible' else 'Desconectado' }}</span>
+                </button>
+            </form>
+
+            {% if existe('conductor.notificaciones') %}
+            <a class="icon-btn" href="{{ url_for('conductor.notificaciones') }}" title="Notificaciones">
+                <span class="material-symbols-rounded">notifications</span>
+                {% if notif_pendientes > 0 %}<span class="count">{{ notif_pendientes }}</span>{% endif %}
+            </a>
+            {% endif %}
+        </div>
+    </header>
+
+    {% if not validado %}
+    <div class="alert warning">
+        Tu cuenta está <strong>{{ conductor.estado_validacion }}</strong>. Podrás recibir solicitudes cuando un administrador apruebe tus documentos.
+    </div>
+    {% endif %}
+
+    <!-- 4 KPIs (datos reales) -->
+    <section class="kpis">
+        <article class="kpi">
+            <span class="kpi-ico"><span class="material-symbols-rounded">two_wheeler</span></span>
+            <div class="kpi-body">
+                <strong>{{ resumen.servicios }}</strong>
+                <span>Servicios hoy</span>
+                <small>{{ vs_ayer(metricas.variacion_servicios) }}</small>
+            </div>
+        </article>
+
+        <article class="kpi">
+            <span class="kpi-ico orange"><span class="material-symbols-rounded">account_balance_wallet</span></span>
+            <div class="kpi-body">
+                <strong>Bs {{ bs(resumen.ganancias) }}</strong>
+                <span>Ganancias hoy</span>
+                <small>{{ vs_ayer(metricas.variacion_ganancias) }}</small>
+            </div>
+        </article>
+
+        {% set estrellas = (resumen.calificacion|round|int) if resumen.calificacion else 0 %}
+        <article class="kpi">
+            <span class="kpi-ico"><span class="material-symbols-rounded">star</span></span>
+            <div class="kpi-body">
+                <strong>{{ '%.1f'|format(resumen.calificacion) ~ ' / 5' if resumen.calificacion else '— / 5' }}</strong>
+                <span>Calificación</span>
+                <div class="stars">{{ '★' * estrellas }}{{ '☆' * (5 - estrellas) }}</div>
+            </div>
+        </article>
+
+        <article class="kpi">
+            <span class="kpi-ico orange"><span class="material-symbols-rounded">route</span></span>
+            <div class="kpi-body">
+                <strong>{{ '%.1f'|format(metricas.distancia_km) }} km</strong>
+                <span>Distancia recorrida</span>
+                <small>Hoy, según tu GPS</small>
+            </div>
+        </article>
+    </section>
+
+    <!-- Ubicación actual + solicitud de servicio -->
+    <section class="dash-split-wide">
+        <article class="card">
+            <div class="card-head">
+                <h2 class="card-title"><span class="material-symbols-rounded">location_on</span><span>Mi ubicación actual</span></h2>
+            </div>
+
+            <div class="map-box">
+                <div class="map-pill">
+                    <span class="status-dot {{ 'is-available' if conductor.disponibilidad == 'disponible' else '' }}"></span>
+                    <span>{{ 'Disponible para recibir nuevas solicitudes' if conductor.disponibilidad == 'disponible' else 'Modo desconectado' }}</span>
+                </div>
+
+                <div class="map-ring"><div class="map-dot"></div></div>
+
+                <div class="map-pin"><span class="material-symbols-rounded">two_wheeler</span></div>
+
+                {% if conductor.descripcion_vehiculo %}
+                <div class="map-tag">
+                    <span class="material-symbols-rounded">two_wheeler</span>
+                    <span>{{ conductor.descripcion_vehiculo }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </article>
+
+        <article class="card">
+            <div class="card-head">
+                <h2 class="card-title"><span class="material-symbols-rounded">bolt</span><span>Solicitud de servicio</span></h2>
+                {% if solicitudes|length > 1 %}
+                <span class="muted">+{{ solicitudes|length - 1 }} más en espera</span>
+                {% endif %}
+            </div>
+
+            {% if solicitudes %}
+                {% set s = solicitudes[0] %}
+                <div class="req">
+                    <div>
+                        <div class="req-meta">
+                            <span class="badge badge-orange">{{ s.tipo }}</span>
+                            <span class="muted">{{ ('Programado: ' ~ s.fecha_programada) if s.fecha_programada else 'Inmediato' }}</span>
+                        </div>
+                        <div class="route-line">
+                            <span class="material-symbols-rounded from">radio_button_checked</span>
+                            <span>{{ s.origen }}</span>
+                        </div>
+                        <div class="route-line">
+                            <span class="material-symbols-rounded to">location_on</span>
+                            <span>{{ s.destino }}</span>
+                        </div>
+                        <div class="fare">
+                            <span class="material-symbols-rounded">payments</span>
+                            <span>Bs {{ bs(s.precio) }}</span>
+                        </div>
+                    </div>
+                    <div class="req-stub">
+                        <span class="material-symbols-rounded">{{ 'package_2' if s.tipo == 'Courier' else 'person' }}</span>
+                    </div>
+                </div>
+
+                <div class="req-actions">
+                    <form method="post" action="{{ url_for('conductor.rechazar', id_servicio=s.id_servicio) }}">
+                        <button class="btn btn-outline btn-icon btn-grow" type="submit">
+                            <span class="material-symbols-rounded">close</span><span>Rechazar</span>
+                        </button>
+                    </form>
+                    <form method="post" action="{{ url_for('conductor.aceptar', id_servicio=s.id_servicio) }}">
+                        <button class="btn btn-primary btn-icon btn-grow" type="submit">
+                            <span class="material-symbols-rounded">check</span><span>Aceptar</span>
+                        </button>
+                    </form>
+                </div>
+            {% else %}
+                <p class="empty">
+                    {% if not validado %}Disponible cuando tu cuenta sea aprobada.
+                    {% elif conductor.disponibilidad != 'disponible' %}Ponte en línea para recibir solicitudes.
+                    {% else %}No hay solicitudes nuevas por ahora.{% endif %}
+                </p>
+            {% endif %}
+        </article>
+    </section>
+
+    <!-- Próximos servicios + ganancias 7 días -->
+    <section class="dash-split-wide">
+        <article class="card">
+            <div class="card-head">
+                <h2 class="card-title"><span class="material-symbols-rounded">calendar_month</span><span>Mis próximos servicios</span></h2>
+                {% if existe('conductor.historial') %}
+                <a class="link-sm" href="{{ url_for('conductor.historial') }}">Ver historial →</a>
+                {% endif %}
+            </div>
+
+            {% if proximos %}
+            <div class="item-list">
+                {% for p in proximos[:3] %}
+                <a class="list-row" href="{{ url_for('conductor.servicio', id_servicio=p.id_servicio) }}">
+                    <span class="item-main">
+                        <span class="item-ico {{ 'orange' if p.tipo == 'Courier' else '' }}">
+                            <span class="material-symbols-rounded">{{ 'package_2' if p.tipo == 'Courier' else 'two_wheeler' }}</span>
+                        </span>
+                        <span class="item-text">
+                            {{ p.tipo }} · {{ p.origen }} → {{ p.destino }}
+                            <span class="item-sub">{{ p.fecha_programada or p.fecha_solicitud }}</span>
+                        </span>
+                    </span>
+                    <span class="badge {{ 'badge-blue' if p.estado == 'en_curso' else 'badge-gray' }}">{{ p.estado|replace('_', ' ')|capitalize }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% if proximos|length > 3 %}
+            <a class="link-sm link-end" href="{{ url_for('conductor.historial') }}">Ver los {{ proximos|length - 3 }} restantes →</a>
+            {% endif %}
+            {% else %}
+            <p class="empty">Aún no tienes servicios asignados.</p>
+            {% endif %}
+        </article>
+
+        <article class="card card-dark">
+            <div class="card-head">
+                <h2 class="card-title"><span class="material-symbols-rounded">bar_chart</span><span>Mis ganancias (últimos 7 días)</span></h2>
+                <span class="chart-total">Bs {{ bs(grafico.total) }}</span>
+            </div>
+
+            <svg class="chart-svg" viewBox="0 0 350 130" preserveAspectRatio="none" role="img" aria-label="Ganancias de los últimos 7 días">
+                <line x1="15" y1="25" x2="335" y2="25" stroke="rgba(255,255,255,0.1)" stroke-dasharray="4 4" />
+                <line x1="15" y1="65" x2="335" y2="65" stroke="rgba(255,255,255,0.1)" stroke-dasharray="4 4" />
+                <line x1="15" y1="105" x2="335" y2="105" stroke="rgba(255,255,255,0.1)" stroke-dasharray="4 4" />
+                <polyline fill="none" stroke="#ff8200" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"
+                          points="{{ grafico.puntos }}" />
+                {% for x, y in grafico.circulos %}
+                <circle cx="{{ x }}" cy="{{ y }}" r="{{ 5.5 if loop.last else 4.5 }}"
+                        fill="{{ '#ffb15c' if loop.last else '#ff8200' }}"
+                        {% if loop.last %}stroke="#ffffff" stroke-width="1.5"{% endif %}>
+                    <title>{{ grafico.dias[loop.index0] }}: Bs {{ '%.2f'|format(grafico.valores[loop.index0]) }}</title>
+                </circle>
+                {% endfor %}
+            </svg>
+            <div class="chart-days">
+                {% for d in grafico.dias %}<span>{{ d }}</span>{% endfor %}
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}

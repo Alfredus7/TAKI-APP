@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+{% block title %}Seguimiento - TEKI{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<div class="dash">
+    <div class="page-head">
+        <div>
+            <h1>Seguimiento</h1>
+            <p class="muted">Ubicación en tiempo real de tu servicio</p>
+        </div>
+        {% if servicio %}
+        <span class="badge badge-orange" id="estado-servicio">{{ servicio.estado|replace('_',' ') }}</span>
+        {% endif %}
+    </div>
+
+    {% if servicio %}
+    <section class="dash-main">
+        <article class="card" style="position: relative; padding: 0; overflow: hidden;">
+            
+            <!-- PANEL FLOTANTE DE INFORMACIÓN (Superior izquierda del mapa) -->
+            <div class="map-overlay-panel" style="position: absolute; top: 15px; left: 15px; z-index: 1000; background: rgba(255, 255, 255, 0.95); padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 260px; backdrop-filter: blur(5px);">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <span class="material-symbols-rounded" style="color: #ff8200; font-size: 28px;">local_taxi</span>
+                    <div>
+                        <div style="font-weight: bold; font-size: 1rem; line-height: 1.2;">{{ servicio.tipo }}</div>
+                        <div class="muted" style="font-size: 0.8rem;">{{ servicio.conductor_nombre or 'Asignando...' }}</div>
+                    </div>
+                </div>
+                
+                <div style="font-size: 0.85rem; border-top: 1px solid #eee; padding-top: 8px;">
+                    <!-- INDICADOR DE FASE -->
+                    <div id="panel-fase" style="margin-bottom: 10px; padding: 6px; border-radius: 4px; text-align: center; font-weight: bold; font-size: 0.8rem; background-color: #ff8200; color: white;">
+                        Calculando fase...
+                    </div>
+
+                    <p style="margin: 4px 0;"><strong>Origen:</strong> {{ servicio.origen }}</p>
+                    <p style="margin: 4px 0;"><strong>Destino:</strong> {{ servicio.destino }}</p>
+                    
+                    <p style="margin: 8px 0 4px 0; color: #092747; font-weight: bold; font-size: 0.9rem;" id="panel-distancia">
+                        <span class="material-symbols-rounded" style="font-size: 16px; vertical-align: middle;">straighten</span> Calculando...
+                    </p>
+                    <p style="margin: 0; font-size: 0.75rem; color: #888;" id="panel-actualizado">
+                        Actualizando...
+                    </p>
+                </div>
+            </div>
+
+            <!-- MAPA -->
+            <div id="mapa" class="mapa" style="height: 500px; width: 100%;"
+                 data-url="{{ url_for('cliente.ubicacion_json', id_servicio=servicio.id) }}"
+                 data-origen="{{ servicio.origen }}"
+                 data-destino="{{ servicio.destino }}"
+                 data-recogida="{{ '1' if servicio.recogida else '0' }}"
+                 data-lat="{{ ubicacion.latitud if ubicacion else -14.8333 }}"
+                 data-lng="{{ ubicacion.longitud if ubicacion else -64.9000 }}"
+                 data-has-ub="{{ '1' if ubicacion else '0' }}"></div>
+
+        </article>
+
+        <aside class="dash-stack">
+            <article class="card">
+                <h2 class="card-title"><span class="material-symbols-rounded">task_alt</span><span>Confirmaciones</span></h2>
+                <ul class="timeline">
+                    <li class="{% if servicio.estado != 'pendiente' %}done{% endif %}">Solicitud aceptada por un conductor</li>
+                    <li class="{% if servicio.recogida %}done{% endif %}">Pasajero o paquete recogido</li>
+                    <li class="{% if servicio.fin %}done{% endif %}">Fin del viaje o entrega</li>
+                </ul>
+                {% if servicio.estado == 'finalizado' %}
+                <div class="actions-col" style="margin-top:0;">
+                    <a class="btn btn-primary" href="{{ url_for('cliente.calificar', id_servicio=servicio.id) }}">Calificar servicio</a>
+                    <a class="btn btn-outline" href="{{ url_for('cliente.pagos') }}">Ir a pagos</a>
+                </div>
+                {% endif %}
+            </article>
+        </aside>
+    </section>
+
+    <!-- SELECTOR DE MÚLTIPLES VIAJES ACTIVOS -->
+    {% if activos and activos|length > 1 %}
+    <div class="card" style="margin-bottom: 1rem; padding: 1rem; border: 1px solid #e2e8f0;">
+        <p class="muted" style="margin-bottom: 0.5rem; font-size: 0.9rem;">Tienes varios servicios activos. Selecciona uno:</p>
+        <div class="actions-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            {% for a in activos %}
+                <a class="btn {% if a.id == servicio.id %}btn-primary{% else %}btn-outline{% endif %}" 
+                   href="{{ url_for('cliente.seguimiento_detalle', id_servicio=a.id) }}">
+                    {{ a.tipo }} #{{ a.id }} ({{ a.estado|replace('_',' ') }})
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    (function () {
+        const mapaEl = document.getElementById("mapa");
+        if (!mapaEl || typeof L === "undefined") return;
+
+        const url = mapaEl.dataset.url;
+        const origenTexto = mapaEl.dataset.origen || "";
+        const destinoTexto = mapaEl.dataset.destino || "";
+        
+        // Variables de estado
+        let yaRecogido = mapaEl.dataset.recogida === "1";
+        let faseActual = yaRecogido ? "destino" : "origen";
+
+        const estadoEl = document.getElementById("estado-servicio");
+        const panelDistancia = document.getElementById("panel-distancia");
+        const panelActualizado = document.getElementById("panel-actualizado");
+        const panelFase = document.getElementById("panel-fase");
+
+        const latInicial = parseFloat(mapaEl.dataset.lat) || -14.8333;
+        const lngInicial = parseFloat(mapaEl.dataset.lng) || -64.9000;
+        const tieneInicial = mapaEl.dataset.hasUb === "1";
+
+        // Inicializar mapa
+        const map = L.map("mapa", { zoomControl: false }).setView([latInicial, lngInicial], 15);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap"
+        }).addTo(map);
+
+        // Iconos personalizados
+        const iconoConductor = L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="background-color: #ff8200; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                     <span class="material-symbols-rounded" style="color: white; font-size: 24px;">sports_motorsports</span>
+                   </div>`,
+            iconSize: [40, 40], iconAnchor: [20, 20]
+        });
+
+        const iconoOrigen = L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="background-color: #0ea5e9; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                     <span class="material-symbols-rounded" style="color: white; font-size: 18px;">trip_origin</span>
+                   </div>`,
+            iconSize: [32, 32], iconAnchor: [16, 16]
+        });
+
+        const iconoDestino = L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="background-color: #092747; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                     <span class="material-symbols-rounded" style="color: white; font-size: 18px;">flag</span>
+                   </div>`,
+            iconSize: [32, 32], iconAnchor: [16, 16]
+        });
+
+        let marcadorConductor = null;
+        let marcadorOrigen = null;
+        let marcadorDestino = null;
+        let puntoOrigen = null;
+        let puntoDestino = null;
+
+        let lineaRuta = L.polyline([], { weight: 5, color: "#ff8200", opacity: 0.8 }).addTo(map);
+        let lineaObjetivo = L.polyline([], { weight: 3, color: "#092747", dashArray: "8, 8", opacity: 0.6 }).addTo(map);
+        const rutaCoords = [];
+
+        // Función para buscar una dirección en Nominatim
+        async function geocodificar(direccion) {
+            if (!direccion) return null;
+            const consulta = direccion.toLowerCase().includes("trinidad") ? direccion : `${direccion}, Trinidad, Beni, Bolivia`;
+            try {
+                const endpoint = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(consulta)}`;
+                const resp = await fetch(endpoint, { headers: { "Accept": "application/json" } });
+                if (!resp.ok) return null;
+                const results = await resp.json();
+                if (!results || results.length === 0) return null;
+                return [parseFloat(results[0].lat), parseFloat(results[0].lon)];
+            } catch (err) {
+                console.error("Error geocodificando:", err);
+                return null;
+            }
+        }
+
+        // Actualiza la línea y el texto de distancia según la fase actual
+        function actualizarInterfazFase() {
+            if (!marcadorConductor) return;
+            
+            const objetivoActual = faseActual === "origen" ? puntoOrigen : puntoDestino;
+            
+            // 1. Actualizar línea punteada
+            if (objetivoActual) {
+                const c = marcadorConductor.getLatLng();
+                lineaObjetivo.setLatLngs([[c.lat, c.lng], objetivoActual]);
+                
+                // 2. Calcular y mostrar distancia
+                const metros = Math.round(map.distance([c.lat, c.lng], objetivoActual));
+                const distStr = metros >= 1000 ? `${(metros / 1000).toFixed(2)} km` : `${metros} m`;
+                
+                if (panelDistancia) {
+                    panelDistancia.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px; vertical-align: middle;">straighten</span> Faltan: <strong>${distStr}</strong>`;
+                }
+            }
+
+            // 3. Actualizar etiqueta de fase
+            if (panelFase) {
+                if (faseActual === "origen") {
+                    panelFase.textContent = "🛵 Conductor en camino al ORIGEN";
+                    panelFase.style.backgroundColor = "#0ea5e9"; // Azul
+                } else {
+                    panelFase.textContent = "🏁 Conductor en camino al DESTINO";
+                    panelFase.style.backgroundColor = "#092747"; // Oscuro
+                }
+            }
+        }
+
+        // Cargar puntos en el mapa
+        async function inicializarMapa() {
+            puntoOrigen = await geocodificar(origenTexto);
+            if (puntoOrigen) {
+                marcadorOrigen = L.marker(puntoOrigen, { icon: iconoOrigen }).addTo(map).bindPopup(`Origen: ${origenTexto}`);
+            }
+
+            puntoDestino = await geocodificar(destinoTexto);
+            if (puntoDestino) {
+                marcadorDestino = L.marker(puntoDestino, { icon: iconoDestino }).addTo(map).bindPopup(`Destino: ${destinoTexto}`);
+            }
+
+            const puntos = [marcadorOrigen, marcadorDestino, marcadorConductor].filter(m => m !== null);
+            if (puntos.length > 0) {
+                const grupo = L.featureGroup(puntos);
+                map.fitBounds(grupo.getBounds().pad(0.2));
+            }
+
+            actualizarInterfazFase();
+        }
+
+        function actualizarPosicion(lat, lng, fechaHora, moverVista) {
+            const punto = [parseFloat(lat), parseFloat(lng)];
+            if (Number.isNaN(punto[0]) || Number.isNaN(punto[1])) return;
+
+            if (!marcadorConductor) {
+                marcadorConductor = L.marker(punto, { icon: iconoConductor }).addTo(map).bindPopup("Conductor");
+            } else {
+                marcadorConductor.setLatLng(punto);
+            }
+
+            const ultimo = rutaCoords[rutaCoords.length - 1];
+            if (!ultimo || ultimo[0] !== punto[0] || ultimo[1] !== punto[1]) {
+                rutaCoords.push(punto);
+                lineaRuta.setLatLngs(rutaCoords);
+            }
+
+            actualizarInterfazFase();
+
+            if (moverVista) map.panTo(punto);
+
+            if (panelActualizado && fechaHora) {
+                const hora = new Date(fechaHora).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                panelActualizado.innerHTML = `<span class="material-symbols-rounded" style="font-size: 14px; vertical-align: middle;">update</span> Act. ${hora}`;
+            }
+        }
+
+        if (tieneInicial) {
+            actualizarPosicion(latInicial, lngInicial, "", false);
+            marcadorConductor.openPopup();
+        }
+        inicializarMapa();
+
+        async function consultarUbicacion() {
+            try {
+                const resp = await fetch(url, { cache: "no-store" });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                
+                // 1. Actualizar estado general del servicio
+                if (estadoEl && data.estado) {
+                    estadoEl.textContent = data.estado.replaceAll("_", " ");
+                }
+                
+                // 2. Actualizar fase (si el backend dice que ya se recogió, cambiamos de fase)
+                if (data.recogida !== undefined) {
+                    const nuevaFase = data.recogida ? "destino" : "origen";
+                    if (nuevaFase !== faseActual) {
+                        faseActual = nuevaFase;
+                        actualizarInterfazFase();
+                    }
+                }
+                
+                // 3. Actualizar posición del conductor
+                if (data.ubicacion && data.ubicacion.latitud != null && data.ubicacion.longitud != null) {
+                    actualizarPosicion(
+                        data.ubicacion.latitud,
+                        data.ubicacion.longitud,
+                        data.ubicacion.fecha_hora,
+                        true
+                    );
+                }
+            } catch (err) {
+                console.error("Error actualizando ubicación:", err);
+            }
+        }
+
+        setInterval(consultarUbicacion, 4000);
+    })();
+    </script>
+    {% else %}
+    <section class="card">
+        <p class="empty">No tienes servicios activos en este momento.</p>
+        <div class="actions-row">
+            <a class="btn btn-primary" href="{{ url_for('cliente.solicitar_mototaxi') }}">Solicitar mototaxi</a>
+            <a class="btn btn-outline" href="{{ url_for('cliente.courier') }}">Solicitar courier</a>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Historial de servicios - CUIDAVIA{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Historial de servicios</h1>
+        <p class="muted">Viajes y entregas realizados</p>
+    </div>
+    <div class="filters">
+        <a class="btn {{ 'btn-primary' if not filtro else 'btn-dark' }}" href="{{ url_for('conductor.historial') }}">Todos</a>
+        <a class="btn {{ 'btn-primary' if filtro == 'Mototaxi' else 'btn-dark' }}" href="{{ url_for('conductor.historial', tipo='Mototaxi') }}">Mototaxi</a>
+        <a class="btn {{ 'btn-primary' if filtro == 'Courier' else 'btn-dark' }}" href="{{ url_for('conductor.historial', tipo='Courier') }}">Courier</a>
+    </div>
+</div>
+
+<section class="card">
+    {% if servicios %}
+    <div class="table-wrap">
+        <table class="table-simple">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Ruta</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                    <th>Calificación</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in servicios %}
+                <tr>
+                    <td>{{ s.fecha_programada or s.fecha_solicitud }}</td>
+                    <td><span class="badge badge-orange">{{ s.tipo }}</span></td>
+                    <td>{{ s.origen }} → {{ s.destino }}</td>
+                    <td>Bs {{ '%.2f'|format(s.precio) }}</td>
+                    <td>
+                        {% if s.estado in ('aceptado', 'en_curso') %}
+                        <a class="badge badge-blue" href="{{ url_for('conductor.servicio', id_servicio=s.id_servicio) }}">{{ s.estado|replace('_',' ') }}</a>
+                        {% else %}
+                        <span class="badge badge-gray">{{ s.estado|replace('_',' ') }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ (s.puntuacion ~ ' / 5') if s.puntuacion else '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty">Todavía no tienes servicios en tu historial.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Notificaciones - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Notificaciones</h1>
+        <p class="muted">Alertas sobre el estado de tus servicios</p>
+    </div>
+    {% if notificaciones %}
+    <form method="POST" action="{{ url_for('cliente.marcar_todas_notificaciones_leidas') }}" style="margin:0;">
+        <button type="submit" class="btn btn-outline" style="font-size: 0.85rem;">Marcar todas como leídas</button>
+    </form>
+    {% endif %}
+</div>
+
+<section class="card" id="lista-notificaciones">
+    {% for n in notificaciones %}
+    <div class="row-item {{ 'unread' if n.nueva }}">
+        <span class="badge {{ 'badge-orange' if n.tipo == 'solicitud' else 'badge-blue' if n.tipo == 'servicio' else 'badge-gray' }}">
+            {{ n.tipo }}
+        </span>
+        <span>
+            <strong>{{ n.titulo }}</strong><br>
+            <span class="muted">{{ n.mensaje }}</span>
+        </span>
+        <span class="muted">{{ n.fecha_hora if n.fecha_hora else n.fecha }}</span>
+        
+        <div style="display: flex; gap: 8px;">
+            {% if n.id_servicio %}
+            <a class="btn btn-dark" href="{{ url_for('cliente.seguimiento_detalle', id_servicio=n.id_servicio) }}">Ver</a>
+            {% endif %}
+            
+            {% if n.nueva %}
+            <form method="POST" action="{{ url_for('cliente.marcar_notificacion_leida', id_notificacion=n.id_notificacion) }}" style="margin:0;">
+                <button type="submit" class="btn btn-outline" title="Marcar como leída">✓</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <p class="empty" id="mensaje-vacio">No tienes notificaciones.</p>
+    {% endfor %}
+</section>
+
+<script>
+// Polling: consulta el servidor cada 10 segundos
+function cargarNotificaciones() {
+    fetch("{{ url_for('cliente.notificaciones_json') }}")
+        .then(response => response.json())
+        .then(notificaciones => {
+            const contenedor = document.getElementById('lista-notificaciones');
+            
+            if (notificaciones.length === 0) {
+                contenedor.innerHTML = '<p class="empty" id="mensaje-vacio">No tienes notificaciones.</p>';
+                return;
+            }
+
+            contenedor.innerHTML = notificaciones.map(n => {
+                const esNueva = n.nueva ? 'unread' : '';
+                let colorBadge = 'badge-gray';
+                if (n.tipo === 'solicitud') colorBadge = 'badge-orange';
+                else if (n.tipo === 'servicio' || n.tipo === 'Pago' || n.tipo === 'Calificación') colorBadge = 'badge-blue';
+                
+                let btnVer = '';
+                if (n.id_servicio) {
+                    btnVer = `<a class="btn btn-dark" href="/cliente/seguimiento/${n.id_servicio}">Ver</a>`;
+                }
+
+                let btnLeida = '';
+                if (n.nueva) {
+                    btnLeida = `
+                    <form method="POST" action="/cliente/notificaciones/${n.id_notificacion}/leer" style="margin:0;">
+                        <button type="submit" class="btn btn-outline" title="Marcar como leída">✓</button>
+                    </form>`;
+                }
+
+                let fechaMostrar = n.fecha_hora || n.fecha || '';
+                if (fechaMostrar.includes('T')) {
+                    fechaMostrar = new Date(fechaMostrar).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+                }
+
+                return `
+                <div class="row-item ${esNueva}">
+                    <span class="badge ${colorBadge}">${n.tipo}</span>
+                    <span>
+                        <strong>${n.titulo}</strong><br>
+                        <span class="muted">${n.mensaje}</span>
+                    </span>
+                    <span class="muted">${fechaMostrar}</span>
+                    <div style="display: flex; gap: 8px;">
+                        ${btnVer}
+                        ${btnLeida}
+                    </div>
+                </div>`;
+            }).join('');
+        })
+        .catch(err => console.error("Error cargando notificaciones:", err));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setInterval(cargarNotificaciones, 10000);
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,36 @@
+USUARIOS DE PRUEBA - TEKI
+=============================
+(ejecuta primero:  python seed.py)
+
+ADMINISTRADOR
+  Nombre:      Rodrigo Salazar
+  Cargo:       Coordinador General de Operaciones
+  Correo:      rodrigo.salazar@teki.bo
+  Teléfono:    71245890
+  Contraseña:  Admin#2026
+
+CONDUCTOR 1 (aprobado y en línea)
+  Nombre:      Marco Antonio Quispe Mamani
+  Correo:      marco.quispe@teki.bo
+  Teléfono:    72581430
+  Contraseña:  Conductor#2026
+
+CONDUCTOR 2 (aprobado y en línea)
+  Nombre:      Daniela Vargas Torrico
+  Correo:      daniela.vargas@teki.bo
+  Teléfono:    76903214
+  Contraseña:  Conductor#2026
+
+CLIENTE 1 (padre)
+  Nombre:      Valeria Gutiérrez Roca
+  Correo:      valeria.gutierrez@correo.bo
+  Teléfono:    73419082
+  Contraseña:  Cliente#2026
+
+CLIENTE 2 (empresa)
+  Nombre:      Jorge Luis Paz Céspedes
+  Correo:      jorge.paz@correo.bo
+  Teléfono:    78901245
+  Contraseña:  Cliente#2026
+
+Solo para desarrollo. Cambia o borra estas cuentas antes de publicar.

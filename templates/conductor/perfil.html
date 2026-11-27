@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Mi perfil - CUIDAVIA{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Mi perfil</h1>
+        <p class="muted">Datos personales y del vehículo</p>
+    </div>
+    <span class="badge {{ 'badge-blue' if conductor.estado_validacion == 'aprobado' else 'badge-gray' }}">
+        Cuenta {{ conductor.estado_validacion }}
+    </span>
+</div>
+
+{% if conductor.estado_validacion != 'aprobado' %}
+<div class="alert warning">
+    Un administrador debe verificar tu licencia, identificación y documentos del vehículo antes de que puedas recibir servicios.
+</div>
+{% endif %}
+
+<div class="grid-main">
+    <section class="card">
+        <h2>Datos personales</h2>
+        <div class="detail-grid">
+            <p><strong>Nombre:</strong> {{ conductor.nombre }} {{ conductor.apellido }}</p>
+            <p><strong>CI:</strong> {{ conductor.ci }}</p>
+            <p><strong>Correo:</strong> {{ conductor.correo }}</p>
+            <p><strong>Licencia:</strong> {{ conductor.licencia }}</p>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Contacto y vehículo</h2>
+        <form method="post" action="{{ url_for('conductor.actualizar_perfil') }}" class="form-grid">
+            <label class="full">Teléfono
+                <input type="tel" name="telefono" value="{{ conductor.telefono or '' }}" maxlength="20">
+            </label>
+            <label class="full">Descripción del vehículo
+                <textarea name="descripcion_vehiculo" rows="3" maxlength="200">{{ conductor.descripcion_vehiculo or '' }}</textarea>
+            </label>
+            <div class="form-actions full">
+                <button class="btn btn-primary" type="submit">Guardar cambios</button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

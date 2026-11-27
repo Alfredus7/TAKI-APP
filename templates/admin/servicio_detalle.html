@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import badge, accion %}
+{% block title %}Servicio #{{ s.id_servicio }} - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Servicio #{{ s.id_servicio }}</h1>
+        <p class="muted"><span class="badge badge-orange">{{ s.tipo }}</span> {{ badge(s.estado) }}</p>
+    </div>
+    <a class="btn btn-dark" href="{{ url_for('admin.courier' if s.tipo == 'Courier' else 'admin.viajes') }}">← Volver</a>
+</div>
+
+<div class="grid-main">
+    <section class="card">
+        <h2>Detalle</h2>
+        <div class="detail-grid">
+            <p><strong>Origen:</strong> {{ s.origen }}</p>
+            <p><strong>Destino:</strong> {{ s.destino }}</p>
+            <p><strong>Solicitado:</strong> {{ s.fecha_solicitud }}</p>
+            {% if s.fecha_programada %}<p><strong>Programado para:</strong> {{ s.fecha_programada }}</p>{% endif %}
+            <p><strong>Cliente:</strong> {{ s.cliente }}{% if s.cliente_telefono %} · {{ s.cliente_telefono }}{% endif %}</p>
+            <p><strong>Conductor:</strong> {{ s.conductor or 'Sin asignar' }}{% if s.conductor_telefono %} · {{ s.conductor_telefono }}{% endif %}</p>
+            {% if s.vehiculo %}<p><strong>Vehículo:</strong> {{ s.vehiculo }}</p>{% endif %}
+            <p class="price">Bs {{ '%.2f'|format(s.precio) }}</p>
+            {% if s.puntuacion %}<p><strong>Calificación:</strong> {{ s.puntuacion }} / 5</p>{% endif %}
+        </div>
+
+        {% if menor %}
+        <h3>Menor</h3>
+        <div class="detail-grid">
+            <p><strong>Nombre:</strong> {{ menor.nombre }} {{ menor.apellido }}</p>
+            {% if menor.colegio %}<p><strong>Colegio:</strong> {{ menor.colegio }}</p>{% endif %}
+            <p><strong>Recogida:</strong> {{ menor.hora_recogida or 'Pendiente' }}</p>
+            <p><strong>Llegada:</strong> {{ menor.hora_llegada or 'Pendiente' }}</p>
+            <p><strong>Entrega:</strong> {{ badge(menor.estado_entrega) }}</p>
+        </div>
+        {% endif %}
+
+        {% if courier %}
+        <h3>Envío</h3>
+        <div class="detail-grid">
+            <p><strong>Paquete:</strong> {{ courier.descripcion_paquete }}</p>
+            <p><strong>Destinatario:</strong> {{ courier.nombre_destinatario }} · {{ courier.telefono_destinatario }}</p>
+            <p><strong>Entrega:</strong> {{ badge(courier.estado_entrega) }}</p>
+        </div>
+        {% endif %}
+
+        {% if s.estado in ('pendiente', 'aceptado', 'en_curso') %}
+        <div class="actions-row">
+            {{ accion(url_for('admin.servicio_cancelar', id_servicio=s.id_servicio), 'Cancelar servicio', 'btn-danger', None, 'Cancelar este servicio? Esta accion no se puede deshacer.') }}
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>Ubicación del conductor</h2>
+        {% if ubicacion %}
+        <p>Última posición: {{ ubicacion.fecha_hora }}</p>
+        <a class="btn btn-dark" target="_blank" rel="noopener"
+           href="https://www.google.com/maps?q={{ ubicacion.latitud }},{{ ubicacion.longitud }}">Ver en el mapa</a>
+        {% else %}
+        <p class="empty">Sin ubicación registrada.</p>
+        {% endif %}
+
+        <h2>Pagos</h2>
+        {% for p in pagos %}
+        <div class="row-item">
+            <span>Bs {{ '%.2f'|format(p.monto) }}</span>
+            <span>{{ p.metodo_pago }}</span>
+            <span>{{ p.fecha_pago or '—' }}</span>
+            {{ badge(p.estado_pago) }}
+        </div>
+        {% else %}
+        <p class="empty">Sin pagos registrados.</p>
+        {% endfor %}
+    </section>
+</div>
+{% endblock %}

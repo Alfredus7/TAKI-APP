@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Mis ganancias - CUIDAVIA{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Mis ganancias</h1>
+        <p class="muted">Ingresos por servicios finalizados</p>
+    </div>
+</div>
+
+<section class="stats">
+    <article class="stat stat-orange">
+        <span>Hoy · {{ ganancias.hoy.servicios }} servicios</span>
+        <strong>Bs {{ '%.2f'|format(ganancias.hoy.total) }}</strong>
+    </article>
+    <article class="stat stat-dark">
+        <span>Últimos 7 días · {{ ganancias.semana.servicios }} servicios</span>
+        <strong>Bs {{ '%.2f'|format(ganancias.semana.total) }}</strong>
+    </article>
+    <article class="stat stat-dark">
+        <span>Este mes · {{ ganancias.mes.servicios }} servicios</span>
+        <strong>Bs {{ '%.2f'|format(ganancias.mes.total) }}</strong>
+    </article>
+</section>
+
+<section class="card">
+    <h2>Detalle de ingresos</h2>
+    {% if detalle %}
+    <div class="table-wrap">
+        <table class="table-simple">
+            <thead>
+                <tr><th>Fecha</th><th>Tipo</th><th>Ruta</th><th>Monto</th></tr>
+            </thead>
+            <tbody>
+                {% for s in detalle %}
+                <tr>
+                    <td>{{ s.fecha_programada or s.fecha_solicitud }}</td>
+                    <td><span class="badge badge-orange">{{ s.tipo }}</span></td>
+                    <td>{{ s.origen }} → {{ s.destino }}</td>
+                    <td>Bs {{ '%.2f'|format(s.precio) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr><td colspan="3"><strong>Total listado</strong></td><td><strong>Bs {{ '%.2f'|format(total_detalle) }}</strong></td></tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty">Aún no tienes ingresos registrados.</p>
+    {% endif %}
+</section>
+{% endblock %}

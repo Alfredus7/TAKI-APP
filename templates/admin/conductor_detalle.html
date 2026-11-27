@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import badge, accion %}
+{% block title %}{{ c.nombre }} {{ c.apellido }} - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>{{ c.nombre }} {{ c.apellido }}</h1>
+        <p class="muted">{{ badge(c.estado_validacion) }} {{ badge(c.disponibilidad) }} Cuenta: {{ badge(c.estado) }}</p>
+    </div>
+    <a class="btn btn-dark" href="{{ url_for('admin.conductores') }}">← Volver</a>
+</div>
+
+<section class="stats">
+    <article class="stat stat-dark"><span>Servicios finalizados</span><strong>{{ resumen.servicios }}</strong></article>
+    <article class="stat stat-orange"><span>Ingresos generados</span><strong>Bs {{ '%.2f'|format(resumen.ganancias) }}</strong></article>
+    <article class="stat stat-dark"><span>Calificación</span><strong>{{ resumen.calificacion if resumen.calificacion else '—' }} / 5</strong></article>
+</section>
+
+<div class="grid-main">
+    <section class="card">
+        <h2>Datos del conductor</h2>
+        <div class="detail-grid">
+            <p><strong>CI:</strong> {{ c.ci }}</p>
+            <p><strong>Teléfono:</strong> {{ c.telefono or '—' }}</p>
+            <p><strong>Correo:</strong> {{ c.correo }}</p>
+            <p><strong>Licencia:</strong> {{ c.licencia }}</p>
+            <p><strong>Vehículo:</strong> {{ c.descripcion_vehiculo or 'Sin descripción' }}</p>
+        </div>
+        <div class="actions-row">
+            <a class="btn btn-dark" href="{{ url_for('admin.usuario_editar', id_usuario=c.id_usuario) }}">Editar datos</a>
+            {% if c.estado_validacion != 'aprobado' %}
+            {{ accion(url_for('admin.validar_conductor', id_conductor=c.id_conductor), 'Aprobar', 'btn-primary', {'accion': 'aprobar'}) }}
+            {% endif %}
+            {% if c.estado_validacion != 'rechazado' %}
+            {{ accion(url_for('admin.validar_conductor', id_conductor=c.id_conductor), 'Rechazar', 'btn-danger', {'accion': 'rechazar'}, 'Rechazar a este conductor?') }}
+            {% endif %}
+            {% if c.estado != 'suspendido' %}
+            {{ accion(url_for('admin.usuario_estado', id_usuario=c.id_usuario), 'Suspender cuenta', 'btn-danger', {'estado': 'suspendido'}, 'Suspender la cuenta de este conductor?') }}
+            {% else %}
+            {{ accion(url_for('admin.usuario_estado', id_usuario=c.id_usuario), 'Reactivar cuenta', 'btn-primary', {'estado': 'activo'}) }}
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Últimos servicios</h2>
+        {% for s in servicios %}
+        <a class="row-item" href="{{ url_for('admin.servicio_detalle', id_servicio=s.id_servicio) }}">
+            <span class="badge badge-orange">{{ s.tipo }}</span>
+            <span>{{ s.fecha_programada or s.fecha_solicitud }}</span>
+            <span>{{ s.origen }} → {{ s.destino }}</span>
+            {{ badge(s.estado) }}
+        </a>
+        {% else %}
+        <p class="empty">Este conductor aún no tiene servicios.</p>
+        {% endfor %}
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Servicio #{{ s.id_servicio }} - TEKI{% endblock %}
+{% block content %}
+{% set es_courier = (s.tipo == 'Courier') %}
+
+<div class="page-head">
+    <div>
+        <h1>Servicio #{{ s.id_servicio }}</h1>
+        <p class="muted">
+            <span class="badge badge-orange">{{ s.tipo }}</span>
+            <span class="badge {{ 'badge-blue' if s.estado == 'en_curso' else 'badge-gray' }}">{{ s.estado|replace('_',' ') }}</span>
+        </p>
+    </div>
+    <a class="btn btn-dark" href="{{ url_for('conductor.panel') }}">← Volver</a>
+</div>
+
+<div class="grid-main">
+    <section class="card">
+        <h2>Detalle del servicio</h2>
+        <div class="detail-grid">
+            <p><strong>Origen:</strong> {{ s.origen }}</p>
+            <p><strong>Destino:</strong> {{ s.destino }}</p>
+            <p><strong>Fecha:</strong> {{ s.fecha_programada or s.fecha_solicitud }}</p>
+            <p><strong>Cliente:</strong> {{ s.cliente }}{% if s.cliente_telefono %} · <a href="tel:{{ s.cliente_telefono }}">{{ s.cliente_telefono }}</a>{% endif %}</p>
+            <p class="price">Bs {{ '%.2f'|format(s.precio) }}</p>
+        </div>
+
+        {% if not es_courier and menor %}
+        <h3>Pasajero</h3>
+        <div class="detail-grid">
+            <p><strong>Menor:</strong> {{ menor.nombre }} {{ menor.apellido }}</p>
+            {% if menor.colegio %}<p><strong>Colegio:</strong> {{ menor.colegio }}</p>{% endif %}
+            {% if menor.contacto_emergencia %}
+            <p><strong>Contacto de emergencia:</strong> <a href="tel:{{ menor.contacto_emergencia }}">{{ menor.contacto_emergencia }}</a></p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if es_courier and courier %}
+        <h3>Envío</h3>
+        <div class="detail-grid">
+            <p><strong>Paquete:</strong> {{ courier.descripcion_paquete }}</p>
+            <p><strong>Destinatario:</strong> {{ courier.nombre_destinatario }}</p>
+            <p><strong>Teléfono:</strong> <a href="tel:{{ courier.telefono_destinatario }}">{{ courier.telefono_destinatario }}</a></p>
+        </div>
+        {% endif %}
+
+        <h3>Ruta</h3>
+        <div class="actions-row">
+            <a class="btn btn-dark" target="_blank" rel="noopener"
+               href="https://www.google.com/maps/dir/?api=1&destination={{ s.origen|urlencode }}">Ir al origen</a>
+            <a class="btn btn-dark" target="_blank" rel="noopener"
+               href="https://www.google.com/maps/dir/?api=1&origin={{ s.origen|urlencode }}&destination={{ s.destino|urlencode }}">Ruta origen → destino</a>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Progreso</h2>
+        <ol class="timeline">
+            <li class="done">Servicio aceptado</li>
+            <li class="{{ 'done' if s.estado in ('en_curso', 'finalizado') }}">Viaje iniciado</li>
+            <li class="{{ 'done' if recogido }}">{{ 'Paquete recogido' if es_courier else 'Pasajero recogido' }}</li>
+            <li class="{{ 'done' if s.estado == 'finalizado' }}">{{ 'Paquete entregado' if es_courier else 'Viaje finalizado' }}</li>
+        </ol>
+
+        <div class="actions-col">
+            {% if s.estado == 'aceptado' %}
+            <form method="post" action="{{ url_for('conductor.iniciar', id_servicio=s.id_servicio) }}">
+                <button class="btn btn-primary" type="submit">Iniciar viaje</button>
+            </form>
+
+            {% elif s.estado == 'en_curso' and not recogido %}
+            <form method="post" action="{{ url_for('conductor.recoger', id_servicio=s.id_servicio) }}">
+                <button class="btn btn-primary" type="submit">
+                    {{ 'Confirmar recogida del paquete' if es_courier else 'Confirmar recogida del pasajero' }}
+                </button>
+            </form>
+
+            {% elif s.estado == 'en_curso' and recogido %}
+            {% if es_courier %}
+            <form method="post" action="{{ url_for('conductor.entregar', id_servicio=s.id_servicio) }}">
+                <button class="btn btn-primary" type="submit">Confirmar entrega</button>
+            </form>
+            {% else %}
+            <form method="post" action="{{ url_for('conductor.finalizar', id_servicio=s.id_servicio) }}">
+                <button class="btn btn-primary" type="submit">Finalizar viaje</button>
+            </form>
+            {% endif %}
+
+            {% elif s.estado == 'finalizado' %}
+            <p class="empty">Servicio finalizado. {% if s.puntuacion %}Calificación del cliente: {{ s.puntuacion }} / 5.{% endif %}</p>
+            {% endif %}
+        </div>
+
+        {% if s.estado == 'en_curso' %}
+        <div id="gps" class="gps-box" data-url="{{ url_for('conductor.registrar_ubicacion', id_servicio=s.id_servicio) }}">
+            <strong>Compartiendo ubicación</strong>
+            <span class="gps-estado muted">Iniciando GPS…</span>
+        </div>
+        <script>
+        (function () {
+            var box = document.getElementById('gps');
+            if (!box) return;
+            var estado = box.querySelector('.gps-estado');
+            if (!navigator.geolocation) { estado.textContent = 'Tu navegador no permite GPS.'; return; }
+            var url = box.getAttribute('data-url');
+            function enviar() {
+                navigator.geolocation.getCurrentPosition(function (p) {
+                    fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ latitud: p.coords.latitude, longitud: p.coords.longitude })
+                    }).then(function (r) {
+                        estado.textContent = r.ok
+                            ? 'Última ubicación enviada: ' + new Date().toLocaleTimeString()
+                            : 'No se pudo enviar la ubicación.';
+                    }).catch(function () { estado.textContent = 'Sin conexión.'; });
+                }, function () {
+                    estado.textContent = 'Activa el permiso de ubicación del navegador.';
+                }, { enableHighAccuracy: true, timeout: 10000 });
+            }
+            enviar();
+            setInterval(enviar, 10000);
+        })();
+        </script>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

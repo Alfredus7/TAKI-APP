@@ -1,0 +1,16 @@
+{# Macros compartidas del panel admin. Uso: {% from "admin/_macros.html" import badge, accion %} #}
+
+{% macro badge(estado) -%}
+{%- set verdes = ['activo', 'aprobado', 'finalizado', 'pagado', 'resuelto', 'disponible', 'vigente'] -%}
+{%- set rojos = ['suspendido', 'bloqueado', 'rechazado', 'cancelado'] -%}
+{%- set azules = ['en_curso', 'aceptado', 'en_revision'] -%}
+<span class="badge {{ 'badge-green' if estado in verdes else 'badge-red' if estado in rojos else 'badge-blue' if estado in azules else 'badge-gray' }}">{{ (estado or '—')|replace('_', ' ') }}</span>
+{%- endmacro %}
+
+{# Botón que envía un POST. campos = {'nombre': valor}. confirmar = texto opcional de confirmación. #}
+{% macro accion(url, texto, clase='btn-dark', campos=None, confirmar=None) -%}
+<form method="post" action="{{ url }}" class="inline-form"{% if confirmar %} data-confirm="{{ confirmar|e }}" onsubmit="return confirm(this.dataset.confirm)"{% endif %}>
+    {% for k, v in (campos or {}).items() %}<input type="hidden" name="{{ k }}" value="{{ v|e }}">{% endfor %}
+    <button class="btn {{ clase }}" type="submit">{{ texto }}</button>
+</form>
+{%- endmacro %}

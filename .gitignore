@@ -1,0 +1,24 @@
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Archivos de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Base de datos local (¡No subir!)
+*.db
+*.sqlite
+*.sqlite3
+db/
+
+# Archivos de configuración y secretos
+.env
+config.py
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db

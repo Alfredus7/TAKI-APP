@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Historial - TEKI{% endblock %}
+{% block content %}
+{% set clase_estado = {'finalizado': 'badge-green', 'cancelado': 'badge-red', 'en_curso': 'badge-blue', 'aceptado': 'badge-blue'} %}
+
+<div class="dash">
+    <div class="page-head">
+        <div>
+            <h1>Historial</h1>
+            <p class="muted">Tus viajes y envíos anteriores</p>
+        </div>
+    </div>
+
+    <section class="card card-flush">
+        <div class="card-head">
+            <h2 class="card-title"><span class="material-symbols-rounded">two_wheeler</span><span>Viajes de mototaxi</span></h2>
+        </div>
+        {% if viajes %}
+        <div class="table-wrap" style="margin-top:.9rem;">
+            <table class="table-simple">
+                <thead>
+                    <tr><th>Fecha</th><th>Ruta</th><th>Tarifa</th><th>Estado</th><th>Calificación</th></tr>
+                </thead>
+                <tbody>
+                    {% for s in viajes %}
+                    <tr>
+                        <td>{{ s.fecha_solicitud }}</td>
+                        <td><div class="cell-ellipsis">{{ s.origen }} → {{ s.destino }}</div></td>
+                        <td class="price-tag">Bs {{ "%.2f"|format(s.tarifa) }}</td>
+                        <td><span class="badge {{ clase_estado.get(s.estado, 'badge-gray') }}">{{ s.estado|replace('_',' ') }}</span></td>
+                        <td class="td-actions">
+                            {% if s.calificacion %}
+                                <span class="rating-inline">★ {{ s.calificacion }}</span>
+                            {% elif s.estado == 'finalizado' %}
+                                <a class="btn btn-soft btn-sm btn-pill" href="{{ url_for('cliente.calificar', id_servicio=s.id) }}">Calificar</a>
+                            {% else %}
+                                <span class="muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty">Aún no tienes viajes realizados.</p>
+        {% endif %}
+    </section>
+
+    <section class="card card-flush">
+        <div class="card-head">
+            <h2 class="card-title"><span class="material-symbols-rounded">package_2</span><span>Envíos de courier</span></h2>
+        </div>
+        {% if envios %}
+        <div class="table-wrap" style="margin-top:.9rem;">
+            <table class="table-simple">
+                <thead>
+                    <tr><th>Fecha</th><th>Ruta</th><th>Destinatario</th><th>Estado</th><th>Detalle</th></tr>
+                </thead>
+                <tbody>
+                    {% for e in envios %}
+                    <tr>
+                        <td>{{ e.fecha_solicitud }}</td>
+                        <td><div class="cell-ellipsis">{{ e.origen }} → {{ e.destino }}</div></td>
+                        <td>{{ e.dest_nombre }}</td>
+                        <td><span class="badge {{ clase_estado.get(e.estado, 'badge-gray') }}">{{ e.estado|replace('_',' ') }}</span></td>
+                        <td class="td-actions"><a class="btn btn-soft btn-sm btn-pill" href="{{ url_for('cliente.seguimiento_detalle', id_servicio=e.id) }}">Ver</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty">Aún no tienes envíos registrados.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

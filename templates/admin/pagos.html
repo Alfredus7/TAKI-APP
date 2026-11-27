@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import badge %}
+{% block title %}Pagos - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Gestión de pagos</h1>
+        <p class="muted">Supervisión de pagos y transacciones</p>
+    </div>
+</div>
+
+<section class="stats">
+    <article class="stat stat-orange"><span>Cobrado</span><strong>Bs {{ '%.2f'|format(totales.pagado) }}</strong></article>
+    <article class="stat stat-dark"><span>Pendiente</span><strong>Bs {{ '%.2f'|format(totales.pendiente) }}</strong></article>
+    <article class="stat stat-dark"><span>Transacciones</span><strong>{{ totales.cantidad }}</strong></article>
+</section>
+
+<form method="get" class="toolbar">
+    <select name="estado">
+        <option value="">Todos los estados</option>
+        {% for e in estados %}<option value="{{ e }}" {{ 'selected' if filtros.estado == e }}>{{ e }}</option>{% endfor %}
+    </select>
+    <select name="metodo">
+        <option value="">Todos los métodos</option>
+        {% for m in metodos %}<option value="{{ m }}" {{ 'selected' if filtros.metodo == m }}>{{ m }}</option>{% endfor %}
+    </select>
+    <label>Desde <input type="date" name="desde" value="{{ filtros.desde or '' }}"></label>
+    <label>Hasta <input type="date" name="hasta" value="{{ filtros.hasta or '' }}"></label>
+    <button class="btn btn-dark" type="submit">Filtrar</button>
+</form>
+
+<section class="card">
+    {% if pagos %}
+    <div class="table-wrap">
+        <table class="table-simple">
+            <thead><tr><th>#</th><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Método</th><th>Monto</th><th>Estado</th></tr></thead>
+            <tbody>
+                {% for p in pagos %}
+                <tr>
+                    <td>{{ p.id_pago }}</td>
+                    <td>{{ p.fecha_pago or '—' }}</td>
+                    <td>{{ p.cliente }}</td>
+                    <td><a href="{{ url_for('admin.servicio_detalle', id_servicio=p.id_servicio) }}">#{{ p.id_servicio }} · {{ p.tipo }}</a></td>
+                    <td>{{ p.metodo_pago }}</td>
+                    <td>Bs {{ '%.2f'|format(p.monto) }}</td>
+                    <td>{{ badge(p.estado_pago) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty">No hay pagos con esos filtros.</p>
+    {% endif %}
+</section>
+{% endblock %}

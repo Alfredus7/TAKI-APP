@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Pagos - TEKI{% endblock %}
+{% block content %}
+<div class="dash">
+    <div class="page-head">
+        <div>
+            <h1>Pagos</h1>
+            <p class="muted">Paga tus servicios de transporte y courier</p>
+        </div>
+    </div>
+
+    <section class="card">
+        <div class="card-head">
+            <h2 class="card-title">
+                <span class="material-symbols-rounded">payments</span>
+                <span>Servicios pendientes de pago</span>
+                {% if pendientes %}<span class="count-badge">{{ pendientes|length }}</span>{% endif %}
+            </h2>
+        </div>
+
+        {% for p in pendientes %}
+        <div class="pay-row">
+            <span class="badge badge-orange">{{ p.tipo }}</span>
+            <span class="grow muted">{{ p.fecha_solicitud }}</span>
+            <strong class="price-tag">Bs {{ "%.2f"|format(p.tarifa) }}</strong>
+            <form method="POST" action="{{ url_for('cliente.pagar', id_servicio=p.id) }}">
+                <select name="metodo_pago" class="select-sm" aria-label="Método de pago">
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="transferencia">Transferencia</option>
+                    <option value="qr">QR</option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm">Pagar</button>
+            </form>
+        </div>
+        {% else %}
+        <p class="empty">No tienes pagos pendientes.</p>
+        {% endfor %}
+    </section>
+
+    <section class="card card-flush">
+        <div class="card-head">
+            <h2 class="card-title"><span class="material-symbols-rounded">receipt_long</span><span>Historial de pagos</span></h2>
+        </div>
+        {% if transacciones %}
+        <div class="table-wrap" style="margin-top:.9rem;">
+            <table class="table-simple">
+                <thead>
+                    <tr><th>Fecha</th><th>Descripción</th><th>Monto</th><th>Método</th></tr>
+                </thead>
+                <tbody>
+                    {% for t in transacciones %}
+                    <tr>
+                        <td>{{ t.fecha }}</td>
+                        <td>{{ t.descripcion }}</td>
+                        <td class="price-tag">Bs {{ "%.2f"|format(t.monto) }}</td>
+                        <td><span class="badge badge-gray">{{ t.metodo }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty">Todavía no tienes pagos registrados.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

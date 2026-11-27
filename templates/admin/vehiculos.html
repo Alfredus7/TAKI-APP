@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import badge %}
+{% block title %}Vehículos - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Vehículos afiliados</h1>
+        <p class="muted">Registro y control de los vehículos de cada conductor</p>
+    </div>
+</div>
+
+<section class="card">
+    {% if vehiculos %}
+    <div class="table-wrap">
+        <table class="table-simple">
+            <thead><tr><th>Conductor</th><th>Licencia</th><th>Validación</th><th>Descripción del vehículo</th><th></th></tr></thead>
+            <tbody>
+                {% for v in vehiculos %}
+                <tr>
+                    <td><a href="{{ url_for('admin.conductor_detalle', id_conductor=v.id_conductor) }}">{{ v.nombre }} {{ v.apellido }}</a></td>
+                    <td>{{ v.licencia }}</td>
+                    <td>{{ badge(v.estado_validacion) }}</td>
+                    <td colspan="2">
+                        <form method="post" action="{{ url_for('admin.vehiculo_actualizar', id_conductor=v.id_conductor) }}" class="inline-form">
+                            <input type="text" name="descripcion_vehiculo" value="{{ v.descripcion_vehiculo or '' }}" maxlength="200" placeholder="Marca, modelo, color, placa">
+                            <button class="btn btn-dark" type="submit">Guardar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty">No hay conductores registrados.</p>
+    {% endif %}
+</section>
+{% endblock %}

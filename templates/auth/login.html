@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión - TEKI{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block content %}
+<section class="auth-card">
+    <div class="auth-brand">
+        <span class="brand-pin"></span>
+        <h1>TEKI</h1>
+        <p>Movemos lo que importa</p>
+    </div>
+    <h2>Iniciar sesión</h2>
+    <p class="muted">Accede con tu correo o teléfono</p>
+
+    <form method="post" class="form" novalidate>
+        <label class="field">
+            <span>Correo o teléfono</span>
+            <input type="text" name="identificador" required autofocus placeholder="correo@ejemplo.com">
+        </label>
+        <label class="field">
+            <span>Contraseña</span>
+            <div class="password-wrap">
+                <input type="password" name="contrasena" required placeholder="••••••••">
+                <button type="button" class="toggle-pass" aria-label="Mostrar contraseña">👁</button>
+            </div>
+        </label>
+        <button class="btn btn-primary btn-block" type="submit">Ingresar</button>
+    </form>
+
+    <p class="auth-links">¿No tienes cuenta? <a href="{{ url_for('auth.register') }}">Crear cuenta</a></p>
+</section>
+{% endblock %}

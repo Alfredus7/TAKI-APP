@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Inicio - TEKI{% endblock %}
+
+{% block content %}
+{# Acepta la lista completa (servicios_activos) o, como antes, un solo servicio (servicio_activo) #}
+{% set activos = servicios_activos if servicios_activos is defined and servicios_activos else ([servicio_activo] if servicio_activo else []) %}
+
+{# Texto claro del estado: "Pendiente" no le dice nada al padre; "Buscando conductor" sí #}
+{% macro etiqueta(estado) -%}
+{{ {'pendiente': 'Buscando conductor', 'aceptado': 'Conductor asignado', 'en_curso': 'En curso'}.get(estado, estado|replace('_', ' ')|capitalize) }}
+{%- endmacro %}
+
+<div class="dash">
+    <!-- Banner de bienvenida -->
+    <section class="hero">
+        <div>
+            <h1>¡Hola, <span>{{ session.nombre }}</span>!</h1>
+            <p>¿Qué servicio necesitas hoy?</p>
+        </div>
+    </section>
+
+    <!-- Servicios principales -->
+    <section class="service-grid">
+        <article class="card service-card">
+            <div class="service-ico"><span class="material-symbols-rounded">two_wheeler</span></div>
+            <div>
+                <h2>Transporte en Mototaxi</h2>
+                <p>Solicita un mototaxi seguro para tus traslados o los de tus menores.</p>
+                <a class="btn btn-primary btn-pill btn-icon" href="{{ url_for('cliente.solicitar_mototaxi') }}">
+                    <span>Solicitar servicio</span><span>&rarr;</span>
+                </a>
+            </div>
+        </article>
+
+        <article class="card service-card">
+            <div class="service-ico"><span class="material-symbols-rounded">package_2</span></div>
+            <div>
+                <h2>Servicio Courier</h2>
+                <p>Envía documentos o paquetes dentro de la ciudad de manera confiable.</p>
+                <a class="btn btn-primary btn-pill btn-icon" href="{{ url_for('cliente.courier') }}">
+                    <span>Solicitar envío</span><span>&rarr;</span>
+                </a>
+            </div>
+        </article>
+    </section>
+
+    <!-- En curso, historial y notificaciones -->
+    <section class="dash-three">
+        <!-- Mis servicios en curso -->
+        <article class="card">
+            <div class="card-head">
+                <h2 class="card-title">
+                    <span class="material-symbols-rounded">location_on</span>
+                    <span>Mis servicios en curso</span>
+                    {% if activos|length > 1 %}<span class="count-badge">{{ activos|length }}</span>{% endif %}
+                </h2>
+                <a class="link-sm" href="{{ url_for('cliente.seguimiento') }}">Ver todos &rarr;</a>
+            </div>
+
+            {% if activos %}
+            {% set principal = activos[0] %}
+            <div class="req">
+                <div class="map-box is-sm">
+                    <span class="material-symbols-rounded">near_me</span>
+                </div>
+                <div style="flex:1;">
+                    <strong>{{ principal.tipo }}</strong>
+                    <span class="badge {{ 'badge-orange' if principal.estado == 'pendiente' else 'badge-green' }}">{{ etiqueta(principal.estado) }}</span>
+                    <p class="muted" style="margin:.3rem 0 .6rem;">Destino:<br><strong>{{ principal.destino }}</strong></p>
+                    <a class="btn btn-soft btn-sm btn-pill" href="{{ url_for('cliente.seguimiento_detalle', id_servicio=principal.id) }}">Seguir viaje &rarr;</a>
+                </div>
+            </div>
+
+            {% if activos|length > 1 %}
+            <ul class="item-list">
+                {% for s in activos[1:3] %}
+                <li class="list-row">
+                    <div class="item-main">
+                        <span class="item-ico {{ 'orange' if s.tipo == 'Courier' else '' }}">
+                            <span class="material-symbols-rounded">{{ 'package_2' if s.tipo == 'Courier' else 'two_wheeler' }}</span>
+                        </span>
+                        <div class="item-text">
+                            {{ s.tipo }}
+                            <span class="item-sub">{{ etiqueta(s.estado) }} · {{ s.destino }}</span>
+                        </div>
+                    </div>
+                    <a class="btn btn-soft btn-sm btn-pill" href="{{ url_for('cliente.seguimiento_detalle', id_servicio=s.id) }}">Ver</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% if activos|length > 3 %}
+            <a class="link-sm link-end" href="{{ url_for('cliente.seguimiento') }}">+{{ activos|length - 3 }} más &rarr;</a>
+            {% endif %}
+            {% endif %}
+            {% else %}
+            <p class="empty">No tienes servicios activos en este momento.</p>
+            <a class="btn btn-soft btn-pill btn-grow" href="{{ url_for('cliente.solicitar_mototaxi') }}">Solicitar ahora &rarr;</a>
+            {% endif %}
+        </article>
+
+        <!-- Historial reciente -->
+        <article class="card">
+            <div class="card-head">
+                <h2 class="card-title"><span class="material-symbols-rounded">history</span><span>Historial reciente</span></h2>
+                <a class="link-sm" href="{{ url_for('cliente.historial') }}">Ver todos &rarr;</a>
+            </div>
+
+            {% if recientes %}
+            <ul class="item-list">
+                {% for s in recientes[:3] %}
+                <li class="list-row">
+                    <div class="item-main">
+                        <span class="item-ico {{ 'orange' if s.tipo == 'Courier' else '' }}">
+                            <span class="material-symbols-rounded">{{ 'package_2' if s.tipo == 'Courier' else 'two_wheeler' }}</span>
+                        </span>
+                        <div class="item-text">
+                            {{ s.tipo }}
+                            <span class="item-sub">{{ s.fecha_solicitud }} · {{ s.destino }}</span>
+                        </div>
+                    </div>
+                    <span class="badge {% if s.estado == 'cancelado' %}badge-red{% elif s.estado == 'finalizado' %}badge-green{% else %}badge-orange{% endif %}">{{ etiqueta(s.estado) }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty">Todavía no has solicitado servicios.</p>
+            {% endif %}
+        </article>
+
+        <!-- Notificaciones -->
+        <article class="card">
+            <div class="card-head">
+                <h2 class="card-title">
+                    <span class="material-symbols-rounded">notifications</span>
+                    <span>Notificaciones</span>
+                    {% set sin_leer = notificaciones|rejectattr('leida')|list|length if notificaciones else 0 %}
+                    {% if sin_leer > 0 %}<span class="count-badge">{{ sin_leer }}</span>{% endif %}
+                </h2>
+                <a class="link-sm" href="{{ url_for('cliente.notificaciones') }}">Ver todas &rarr;</a>
+            </div>
+
+            {% if notificaciones %}
+            <ul class="item-list">
+                {% for n in notificaciones[:3] %}
+                <li class="list-row">
+                    <div class="item-main">
+                        <span class="notif-dot {% if n.leida %}read{% endif %}"></span>
+                        <div class="item-text wrap">
+                            {{ n.mensaje }}
+                            <span class="item-sub">{{ n.fecha_hora or n.fecha or '' }}</span>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty">No tienes notificaciones recientes.</p>
+            {% endif %}
+        </article>
+    </section>
+
+    <!-- Accesos rápidos -->
+    <section>
+        <h2 class="section-title"><span class="material-symbols-rounded">bolt</span><span>Accesos rápidos</span></h2>
+        <div class="quick-grid">
+            <a class="card quick-card" href="{{ url_for('cliente.pagos') }}">
+                <span class="quick-ico"><span class="material-symbols-rounded">payments</span></span>
+                <div class="quick-info"><strong>Realizar pagos</strong><span>Paga tus servicios de forma segura.</span></div>
+                <span class="quick-arrow">&rarr;</span>
+            </a>
+            <a class="card quick-card" href="{{ url_for('cliente.atencion') }}">
+                <span class="quick-ico"><span class="material-symbols-rounded">support_agent</span></span>
+                <div class="quick-info"><strong>Contactar soporte</strong><span>Resuelve tus dudas con nuestro equipo.</span></div>
+                <span class="quick-arrow">&rarr;</span>
+            </a>
+            <a class="card quick-card" href="{{ url_for('cliente.menores') }}">
+                <span class="quick-ico"><span class="material-symbols-rounded">escalator_warning</span></span>
+                <div class="quick-info"><strong>Mis hijos</strong><span>Administra los datos de tus menores.</span></div>
+                <span class="quick-arrow">&rarr;</span>
+            </a>
+            <a class="card quick-card" href="{{ url_for('cliente.perfil') }}">
+                <span class="quick-ico"><span class="material-symbols-rounded">person</span></span>
+                <div class="quick-info"><strong>Actualizar perfil</strong><span>Mantén tus datos siempre al día.</span></div>
+                <span class="quick-arrow">&rarr;</span>
+            </a>
+        </div>
+    </section>
+</div>
+{% endblock %}

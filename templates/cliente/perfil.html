@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Mi cuenta - CUIDAVIA{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Mi cuenta</h1>
+        <p class="muted">Actualiza tus datos personales</p>
+    </div>
+</div>
+
+<section class="card">
+    <h2>Datos personales</h2>
+    <form method="POST" action="{{ url_for('cliente.perfil') }}" class="form-grid">
+        <label>Nombre
+            <input type="text" name="nombre" value="{{ usuario.nombre or '' }}" required>
+        </label>
+        <label>Apellido
+            <input type="text" name="apellido" value="{{ usuario.apellido or '' }}">
+        </label>
+        <label>Documento de identidad
+            <input type="text" name="documento" value="{{ usuario.documento or '' }}" required>
+        </label>
+        <label>Teléfono
+            <input type="tel" name="telefono" value="{{ usuario.telefono or '' }}">
+        </label>
+        <label>Correo electrónico
+            <input type="email" name="correo" value="{{ usuario.correo or '' }}" required>
+        </label>
+        <label>Dirección
+            <input type="text" name="direccion" value="{{ usuario.direccion or '' }}">
+        </label>
+        <label>Tipo de cliente
+            <select name="tipo_cliente">
+                <option value="padre" {% if usuario.tipo_cliente == 'padre' %}selected{% endif %}>Padre de familia</option>
+                <option value="empresa" {% if usuario.tipo_cliente == 'empresa' %}selected{% endif %}>Empresa</option>
+            </select>
+        </label>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Accesos rápidos</h2>
+    <div class="menu-grid">
+        <a class="menu-card" href="{{ url_for('cliente.historial') }}"><span class="menu-icon material-symbols-rounded">receipt_long</span><h3>Historial</h3><p>Viajes y envíos realizados.</p></a>
+        <a class="menu-card" href="{{ url_for('cliente.pagos') }}"><span class="menu-icon material-symbols-rounded">payments</span><h3>Pagos</h3><p>Pagos de transporte y courier.</p></a>
+        <a class="menu-card" href="{{ url_for('cliente.notificaciones') }}"><span class="menu-icon material-symbols-rounded">notifications</span><h3>Notificaciones</h3><p>Alertas del estado de tus servicios.</p></a>
+        <a class="menu-card" href="{{ url_for('cliente.atencion') }}"><span class="menu-icon material-symbols-rounded">forum</span><h3>Atención al cliente</h3><p>Consultas, reclamos y sugerencias.</p></a>
+        <a class="menu-card" href="{{ url_for('cliente.menu') }}"><span class="menu-icon material-symbols-rounded">home</span><h3>Inicio</h3><p>Volver al menú principal.</p></a>
+    </div>
+</section>
+{% endblock %}

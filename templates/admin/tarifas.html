@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Tarifas - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Gestión de tarifas</h1>
+        <p class="muted">Precio base de cada tipo de servicio. Los cambios aplican a las nuevas solicitudes.</p>
+    </div>
+</div>
+
+<section class="card">
+    {% for t in tarifas %}
+    <form method="post" action="{{ url_for('admin.tarifa_actualizar') }}" class="row-item">
+        <input type="hidden" name="tipo" value="{{ t.tipo }}">
+        <span class="badge badge-orange">{{ t.tipo }}</span>
+        <label>Precio (Bs)
+            <input type="number" name="precio" value="{{ '%.2f'|format(t.precio) }}" min="0" step="0.50" required>
+        </label>
+        <button class="btn btn-primary" type="submit">Actualizar</button>
+    </form>
+    {% else %}
+    <p class="empty">No hay tipos de servicio configurados.</p>
+    {% endfor %}
+</section>
+{% endblock %}

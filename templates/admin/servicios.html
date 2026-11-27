@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import badge %}
+{% set es_courier = (tipo == 'Courier') %}
+{% block title %}{{ 'Supervisión de courier' if es_courier else 'Supervisión de viajes' }} - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>{{ 'Supervisión de courier' if es_courier else 'Supervisión de viajes' }}</h1>
+        <p class="muted">{{ 'Solicitudes y entregas de paquetes' if es_courier else 'Servicios de transporte de menores' }}</p>
+    </div>
+</div>
+
+<form method="get" action="{{ url_for('admin.courier' if es_courier else 'admin.viajes') }}" class="toolbar">
+    <select name="estado">
+        <option value="">Todos los estados</option>
+        {% for e in estados %}<option value="{{ e }}" {{ 'selected' if filtros.estado == e }}>{{ e|replace('_', ' ') }}</option>{% endfor %}
+    </select>
+    <label>Desde <input type="date" name="desde" value="{{ filtros.desde or '' }}"></label>
+    <label>Hasta <input type="date" name="hasta" value="{{ filtros.hasta or '' }}"></label>
+    <button class="btn btn-dark" type="submit">Filtrar</button>
+</form>
+
+<section class="card">
+    {% if servicios %}
+    <div class="table-wrap">
+        <table class="table-simple">
+            <thead>
+                <tr>
+                    <th>#</th><th>Fecha</th><th>Cliente</th><th>Conductor</th>
+                    {% if es_courier %}<th>Paquete</th><th>Destinatario</th>{% else %}<th>Menor</th>{% endif %}
+                    <th>Ruta</th><th>Precio</th><th>Estado</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in servicios %}
+                <tr>
+                    <td>{{ s.id_servicio }}</td>
+                    <td>{{ s.fecha_programada or s.fecha_solicitud }}</td>
+                    <td>{{ s.cliente }}</td>
+                    <td>{{ s.conductor or 'Sin asignar' }}</td>
+                    {% if es_courier %}
+                    <td>{{ s.paquete or '—' }}</td>
+                    <td>{{ s.destinatario or '—' }}</td>
+                    {% else %}
+                    <td>{{ s.menor or '—' }}</td>
+                    {% endif %}
+                    <td>{{ s.origen }} → {{ s.destino }}</td>
+                    <td>Bs {{ '%.2f'|format(s.precio) }}</td>
+                    <td>{{ badge(s.estado) }}</td>
+                    <td><a class="btn btn-dark" href="{{ url_for('admin.servicio_detalle', id_servicio=s.id_servicio) }}">Ver</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty">No hay servicios con esos filtros.</p>
+    {% endif %}
+</section>
+{% endblock %}

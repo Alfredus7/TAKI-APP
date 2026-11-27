@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import badge, accion %}
+{% block title %}Validación de conductores - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Validación de conductores</h1>
+        <p class="muted">Verifica licencia, identificación y documentos del vehículo antes de aprobar</p>
+    </div>
+</div>
+
+<section class="card">
+    <h2>Solicitudes pendientes ({{ pendientes|length }})</h2>
+    {% for c in pendientes %}
+    <div class="request">
+        <div class="detail-grid">
+            <p><strong>{{ c.nombre }} {{ c.apellido }}</strong> {{ badge(c.estado_validacion) }}</p>
+            <p><strong>CI:</strong> {{ c.ci }}</p>
+            <p><strong>Licencia:</strong> {{ c.licencia }}</p>
+            <p><strong>Vehículo:</strong> {{ c.descripcion_vehiculo or 'Sin descripción' }}</p>
+            <p><strong>Contacto:</strong> {{ c.telefono or '—' }} · {{ c.correo }}</p>
+        </div>
+        <div class="request-actions">
+            <a class="btn btn-dark" href="{{ url_for('admin.conductor_detalle', id_conductor=c.id_conductor) }}">Ver perfil</a>
+            {{ accion(url_for('admin.validar_conductor', id_conductor=c.id_conductor), 'Rechazar', 'btn-danger', {'accion': 'rechazar'}, 'Rechazar esta solicitud?') }}
+            {{ accion(url_for('admin.validar_conductor', id_conductor=c.id_conductor), 'Aprobar', 'btn-primary', {'accion': 'aprobar'}) }}
+        </div>
+    </div>
+    {% else %}
+    <p class="empty">No hay solicitudes pendientes.</p>
+    {% endfor %}
+</section>
+
+<section class="card">
+    <h2>Rechazados ({{ rechazados|length }})</h2>
+    {% for c in rechazados %}
+    <div class="row-item">
+        <span>{{ c.nombre }} {{ c.apellido }}</span>
+        <span>CI {{ c.ci }}</span>
+        <span>Licencia {{ c.licencia }}</span>
+        {{ accion(url_for('admin.validar_conductor', id_conductor=c.id_conductor), 'Aprobar de todos modos', 'btn-dark', {'accion': 'aprobar'}) }}
+    </div>
+    {% else %}
+    <p class="empty">No hay solicitudes rechazadas.</p>
+    {% endfor %}
+</section>
+{% endblock %}

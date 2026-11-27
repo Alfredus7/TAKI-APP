@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import badge %}
+{% block title %}Panel de administración - TEKI{% endblock %}
+{% block content %}
+<div class="dash">
+
+    <!-- Banner -->
+    <section class="hero">
+        <div>
+            <h1>Panel de <span>Administración</span></h1>
+            <p>Supervisa servicios, conductores, pagos y reclamos de TEKI desde un solo lugar.</p>
+        </div>
+        <img class="hero-logo" src="{{ url_for('static', filename='img/logo-teki.svg') }}" alt="TEKI">
+    </section>
+
+    <!-- KPIs (datos reales) -->
+    <section class="kpis">
+        <article class="kpi">
+            <span class="kpi-ico"><span class="material-symbols-rounded">two_wheeler</span></span>
+            <div class="kpi-body">
+                <strong>{{ m.servicios_activos }}</strong>
+                <span>Servicios activos</span>
+                <small>{{ servicios_7d }} solicitados en 7 días</small>
+            </div>
+            <svg class="kpi-spark" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true">
+                <defs><linearGradient id="spkA" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#2563eb" stop-opacity="0.25"/><stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
+                </linearGradient></defs>
+                <polygon points="{{ spark_servicios.area }}" fill="url(#spkA)"/>
+                <polyline points="{{ spark_servicios.linea }}" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </article>
+
+        {% set pct_conductores = (m.conductores_en_linea / m.conductores_aprobados * 100)|round|int if m.conductores_aprobados else 0 %}
+        <article class="kpi">
+            <span class="kpi-ico orange"><span class="material-symbols-rounded">sports_motorsports</span></span>
+            <div class="kpi-body">
+                <strong>{{ m.conductores_en_linea }}</strong>
+                <span>Conductores en línea</span>
+                <small>de {{ m.conductores_aprobados }} aprobados</small>
+                <div class="progress"><i id="prog-conductores" data-pct="{{ pct_conductores }}"></i></div>
+            </div>
+        </article>
+
+        <article class="kpi">
+            <span class="kpi-ico"><span class="material-symbols-rounded">payments</span></span>
+            <div class="kpi-body">
+                <strong>Bs {{ '%.2f'|format(m.ingresos) }}</strong>
+                <span>Ingresos cobrados</span>
+                <small>Bs {{ '%.2f'|format(ingresos_7d) }} en 7 días</small>
+            </div>
+            <svg class="kpi-spark" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true">
+                <defs><linearGradient id="spkB" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#2563eb" stop-opacity="0.25"/><stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
+                </linearGradient></defs>
+                <polygon points="{{ spark_ingresos.area }}" fill="url(#spkB)"/>
+                <polyline points="{{ spark_ingresos.linea }}" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </article>
+
+        {% set estrellas = (m.calificacion_promedio|round|int) if m.calificacion_promedio else 0 %}
+        <article class="kpi">
+            <span class="kpi-ico orange"><span class="material-symbols-rounded">star</span></span>
+            <div class="kpi-body">
+                <strong>{{ '%.1f'|format(m.calificacion_promedio) if m.calificacion_promedio else '—' }}</strong>
+                <span>Calificación promedio</span>
+                <div class="stars">{{ '★' * estrellas }}{{ '☆' * (5 - estrellas) }}</div>
+            </div>
+        </article>
+    </section>
+
+    <!-- Tabla de servicios + panel de atención -->
+    <section class="dash-main">
+        <article class="card card-flush">
+            <div class="card-head">
+                <h2 class="card-title"><span class="material-symbols-rounded">route</span><span>Servicios en curso y pendientes</span></h2>
+            </div>
+            
+<div class="toolbar" style="margin-top:.9rem; display:flex; flex-wrap:wrap; align-items:flex-end; gap:.75rem;">
+    <label style="display:flex; flex-direction:column; gap:.25rem; margin:0; flex:1 1 260px;">
+        <span>Buscar</span>
+        <div style="display:flex; flex-direction:row; align-items:center; gap:.5rem; margin:0; width:100%; height:42px; padding:0 .75rem; border:1px solid #d1d5db; border-radius:10px; background:#fff; box-sizing:border-box;">
+            <span class="material-symbols-rounded" style="font-size:20px; line-height:1; flex-shrink:0; color:#6b7280; pointer-events:none;">search</span>
+            <input type="search" id="buscar" placeholder="Buscar por cliente, conductor, ruta o N.°…" autocomplete="off" style="border:none !important; outline:none !important; box-shadow:none !important; background:transparent; width:100%; height:100%; padding:0; margin:0; flex:1;">
+        </div>
+    </label>
+
+    <label style="display:flex; flex-direction:column; gap:.25rem; margin:0;">
+        <span>Estado</span>
+        <select id="filtro-estado" style="height:42px; padding:0 .75rem; border-radius:10px; box-sizing:border-box;">
+            <option value="">Todos</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="aceptado">Aceptado</option>
+            <option value="en_curso">En curso</option>
+        </select>
+    </label>
+
+    <label style="display:flex; flex-direction:column; gap:.25rem; margin:0;">
+        <span>Tipo</span>
+        <select id="filtro-tipo" style="height:42px; padding:0 .75rem; border-radius:10px; box-sizing:border-box;">
+            <option value="">Todos</option>
+            <option value="Mototaxi">Mototaxi</option>
+            <option value="Courier">Courier</option>
+        </select>
+    </label>
+
+    <a class="btn btn-primary btn-icon" href="{{ url_for('admin.usuario_nuevo') }}" style="display:inline-flex; align-items:center; justify-content:center; gap:.45rem; height:42px; padding:0 1rem; border-radius:10px; white-space:nowrap; box-sizing:border-box;">
+        <span class="material-symbols-rounded" style="font-size:20px; line-height:1;">person_add</span>
+        <span>Registrar usuario</span>
+    </a>
+</div>
+
+            {% if activos %}
+            <div class="table-wrap">
+                <table class="table-simple">
+                    <thead>
+                        <tr><th>N.°</th><th>Cliente</th><th>Conductor</th><th>Tipo</th><th>Ruta</th><th>Estado</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="filas">
+                        {% for s in activos %}
+                        <tr data-estado="{{ s.estado }}" data-tipo="{{ s.tipo }}"
+                            data-texto="{{ (s.id_servicio ~ ' ' ~ s.cliente ~ ' ' ~ (s.conductor or '') ~ ' ' ~ s.origen ~ ' ' ~ s.destino)|lower }}">
+                            <td>{{ s.id_servicio }}</td>
+                            <td><span class="person"><span class="avatar avatar-soft">{{ (s.cliente or '?')[:1]|upper }}</span>{{ s.cliente }}</span></td>
+                            <td>
+                                {% if s.conductor %}
+                                <span class="person"><span class="avatar avatar-navy">{{ s.conductor[:1]|upper }}</span>{{ s.conductor }}</span>
+                                {% else %}
+                                <span class="person is-muted"><span class="avatar avatar-empty"><span class="material-symbols-rounded">person_search</span></span>Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge badge-orange">{{ s.tipo }}</span></td>
+                            <td><div class="cell-ellipsis" title="{{ s.origen }} → {{ s.destino }}">{{ s.origen }} → {{ s.destino }}</div></td>
+                            <td>{{ badge(s.estado) }}</td>
+                            <td>
+                                <a class="icon-link" href="{{ url_for('admin.servicio_detalle', id_servicio=s.id_servicio) }}" title="Ver detalle">
+                                    <span class="material-symbols-rounded">visibility</span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p class="empty" id="sin-resultados" hidden>Ningún servicio coincide con los filtros.</p>
+            </div>
+            <div class="table-foot">Mostrando <span id="visibles">{{ activos|length }}</span> de {{ activos|length }} servicios activos</div>
+            {% else %}
+            <p class="empty">No hay servicios activos en este momento.</p>
+            {% endif %}
+        </article>
+
+        <aside class="dash-stack">
+            <article class="card">
+                <h2 class="card-title"><span class="material-symbols-rounded">notifications_active</span><span>Requiere tu atención</span></h2>
+                <div class="item-list">
+                    <a class="list-row" href="{{ url_for('admin.validacion') }}">
+                        <span class="item-main"><span class="item-ico"><span class="material-symbols-rounded">verified</span></span><span class="item-text">Conductores por validar</span></span>
+                        <span class="count {{ 'hot' if m.pendientes_validacion }}">{{ m.pendientes_validacion }}</span>
+                    </a>
+                    <a class="list-row" href="{{ url_for('admin.reclamos', estado='pendiente') }}">
+                        <span class="item-main"><span class="item-ico"><span class="material-symbols-rounded">campaign</span></span><span class="item-text">Reclamos sin resolver</span></span>
+                        <span class="count {{ 'hot' if m.reclamos_abiertos }}">{{ m.reclamos_abiertos }}</span>
+                    </a>
+                    <div class="list-row">
+                        <span class="item-main"><span class="item-ico"><span class="material-symbols-rounded">person_search</span></span><span class="item-text">Servicios sin conductor</span></span>
+                        <span class="count {{ 'hot' if m.sin_conductor }}">{{ m.sin_conductor }}</span>
+                    </div>
+                </div>
+            </article>
+
+            <article class="card">
+                <h2 class="card-title"><span class="material-symbols-rounded">person</span><span>Próximo por validar</span></h2>
+                {% if proximo %}
+                <div class="profile">
+                    <span class="avatar avatar-xl avatar-soft">{{ proximo.nombre[:1]|upper }}</span>
+                    <div>
+                        <h3>{{ proximo.nombre }} {{ proximo.apellido }}</h3>
+                        {{ badge(proximo.estado_validacion) }}
+                        <p>CI: {{ proximo.ci }}{% if proximo.telefono %} · {{ proximo.telefono }}{% endif %}</p>
+                        <p>Licencia: {{ proximo.licencia }}</p>
+                        <p>Vehículo: {{ proximo.descripcion_vehiculo or 'Sin descripción' }}</p>
+                    </div>
+                </div>
+                <a class="btn btn-soft btn-icon btn-grow" href="{{ url_for('admin.conductor_detalle', id_conductor=proximo.id_conductor) }}">
+                    <span class="material-symbols-rounded">description</span><span>Ver detalle completo</span>
+                </a>
+                {% else %}
+                <p class="text-ok"><span class="material-symbols-rounded">check_circle</span>No hay conductores pendientes.</p>
+                {% endif %}
+            </article>
+        </aside>
+    </section>
+
+    <!-- Fila inferior -->
+    <section class="dash-bottom">
+        <article class="card">
+            <h2 class="card-title"><span class="material-symbols-rounded">bar_chart</span><span>Servicios por mes</span></h2>
+            <div class="legend">
+                <span><i class="navy"></i>Solicitados</span>
+                <span><i class="orange"></i>Finalizados</span>
+            </div>
+            <div class="bars">
+                {% for b in barras %}
+                <div class="bar-group" title="{{ b.mes }}: {{ b.solicitados }} solicitados, {{ b.finalizados }} finalizados">
+                    <div class="bar-pair">
+                        <i class="a" data-h="{{ b.h_solicitados }}"></i>
+                        <i class="b" data-h="{{ b.h_finalizados }}"></i>
+                    </div>
+                    <span class="bar-label">{{ b.mes }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </article>
+
+        <article class="card">
+            <h2 class="card-title"><span class="material-symbols-rounded">donut_large</span><span>Disponibilidad</span></h2>
+            <div class="donut-wrap">
+                <div class="donut">
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                        <g transform="rotate(-90 50 50)" fill="none" stroke-width="12">
+                            <circle cx="50" cy="50" r="40" stroke="#e2e8f0"/>
+                            {% for seg in donut.segmentos %}
+                            {% if donut.total %}
+                            <circle cx="50" cy="50" r="40"
+                                    stroke="{{ {'libres': '#1f9d55', 'ocupados': '#ff8200', 'fuera': '#cbd5e1'}[seg.clase] }}"
+                                    stroke-dasharray="{{ seg.dash }}" stroke-dashoffset="{{ seg.offset }}"/>
+                            {% endif %}
+                            {% endfor %}
+                        </g>
+                    </svg>
+                    <div class="donut-center"><strong>{{ donut.pct_activos }}%</strong><span>activos</span></div>
+                </div>
+                <div class="donut-legend">
+                    <div><span><i style="background:#1f9d55"></i>Libres</span><b>{{ donut.libres }}</b></div>
+                    <div><span><i style="background:#ff8200"></i>Ocupados</span><b>{{ donut.ocupados }}</b></div>
+                    <div><span><i style="background:#cbd5e1"></i>Fuera de línea</span><b>{{ donut.fuera }}</b></div>
+                </div>
+            </div>
+        </article>
+
+        <article class="card">
+            <h2 class="card-title"><span class="material-symbols-rounded">bolt</span><span>Acciones rápidas</span></h2>
+            <div class="quick-grid">
+                <a class="btn btn-outline btn-icon" href="{{ url_for('admin.validacion') }}"><span class="material-symbols-rounded">verified</span>Validar</a>
+                <a class="btn btn-outline btn-icon" href="{{ url_for('admin.reclamos') }}"><span class="material-symbols-rounded">campaign</span>Reclamos</a>
+                <a class="btn btn-outline btn-icon" href="{{ url_for('admin.reportes') }}"><span class="material-symbols-rounded">monitoring</span>Reportes</a>
+                <a class="btn btn-outline btn-icon" href="{{ url_for('admin.tarifas') }}"><span class="material-symbols-rounded">sell</span>Tarifas</a>
+            </div>
+        </article>
+
+        <article class="card card-dark promo">
+            <p>Conductores comprometidos, <span>viajes más seguros.</span></p>
+            <img src="{{ url_for('static', filename='img/logo-teki.svg') }}" alt="TEKI">
+        </article>
+    </section>
+</div>
+
+<script>
+(function () {
+    // Anchos/alturas dinámicos sin expresiones Jinja dentro de atributos style
+    var prog = document.getElementById('prog-conductores');
+    if (prog) {
+        var pct = parseFloat(prog.getAttribute('data-pct'));
+        if (!Number.isNaN(pct)) prog.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    }
+    document.querySelectorAll('.bar-pair i[data-h]').forEach(function (bar) {
+        var h = parseFloat(bar.getAttribute('data-h'));
+        if (!Number.isNaN(h)) bar.style.height = Math.max(0, Math.min(100, h)) + '%';
+    });
+
+    // Filtros de la tabla de servicios activos
+    var filas = document.querySelectorAll('#filas tr');
+    if (!filas.length) return;
+    var buscar = document.getElementById('buscar');
+    var estado = document.getElementById('filtro-estado');
+    var tipo = document.getElementById('filtro-tipo');
+    var visiblesEl = document.getElementById('visibles');
+    var sinResultados = document.getElementById('sin-resultados');
+
+    function filtrar() {
+        var q = (buscar ? buscar.value : '').trim().toLowerCase();
+        var est = estado ? estado.value : '';
+        var tip = tipo ? tipo.value : '';
+        var visibles = 0;
+        filas.forEach(function (fila) {
+            var ok = (!q || (fila.getAttribute('data-texto') || '').indexOf(q) !== -1) &&
+                     (!est || fila.getAttribute('data-estado') === est) &&
+                     (!tip || fila.getAttribute('data-tipo') === tip);
+            fila.hidden = !ok;
+            if (ok) visibles++;
+        });
+        if (visiblesEl) visiblesEl.textContent = visibles;
+        if (sinResultados) sinResultados.hidden = visibles > 0;
+    }
+    if (buscar) buscar.addEventListener('input', filtrar);
+    if (estado) estado.addEventListener('change', filtrar);
+    if (tipo) tipo.addEventListener('change', filtrar);
+})();
+</script>
+{% endblock %}

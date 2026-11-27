@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "admin/_macros.html" import badge, accion %}
+{% block title %}Usuarios - TEKI{% endblock %}
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <h1>Gestión de usuarios</h1>
+        <p class="muted">Registrar, modificar, desactivar o suspender cuentas</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('admin.usuario_nuevo') }}">+ Nuevo usuario</a>
+</div>
+
+<form method="get" class="toolbar">
+    <input type="search" name="q" value="{{ filtros.q or '' }}" placeholder="Buscar por nombre, CI o correo">
+    <select name="rol">
+        <option value="">Todos los roles</option>
+        {% for r in roles %}<option value="{{ r }}" {{ 'selected' if filtros.rol == r }}>{{ r }}</option>{% endfor %}
+    </select>
+    <select name="estado">
+        <option value="">Todos los estados</option>
+        {% for e in estados %}<option value="{{ e }}" {{ 'selected' if filtros.estado == e }}>{{ e }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-dark" type="submit">Filtrar</button>
+</form>
+
+<section class="card">
+    {% if usuarios %}
+    <div class="table-wrap">
+        <table class="table-simple">
+            <thead><tr><th>Nombre</th><th>CI</th><th>Correo</th><th>Teléfono</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr>
+                    <td>{{ u.nombre }} {{ u.apellido }}</td>
+                    <td>{{ u.ci }}</td>
+                    <td>{{ u.correo }}</td>
+                    <td>{{ u.telefono or '—' }}</td>
+                    <td><span class="badge badge-orange">{{ u.rol }}</span></td>
+                    <td>{{ badge(u.estado) }}</td>
+                    <td>
+                        <div class="actions-row">
+                            <a class="btn btn-dark" href="{{ url_for('admin.usuario_editar', id_usuario=u.id_usuario) }}">Editar</a>
+                            {% if u.id_usuario != session.id_usuario %}
+                                {% if u.estado != 'activo' %}
+                                {{ accion(url_for('admin.usuario_estado', id_usuario=u.id_usuario), 'Activar', 'btn-primary', {'estado': 'activo'}) }}
+                                {% endif %}
+                                {% if u.estado == 'activo' %}
+                                {{ accion(url_for('admin.usuario_estado', id_usuario=u.id_usuario), 'Desactivar', 'btn-dark', {'estado': 'inactivo'}, 'Desactivar esta cuenta?') }}
+                                {% endif %}
+                                {% if u.estado != 'suspendido' %}
+                                {{ accion(url_for('admin.usuario_estado', id_usuario=u.id_usuario), 'Suspender', 'btn-danger', {'estado': 'suspendido'}, 'Suspender esta cuenta por incumplir las normas?') }}
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty">No se encontraron usuarios con esos filtros.</p>
+    {% endif %}
+</section>
+{% endblock %}

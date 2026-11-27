@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Registro - TEKI{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block content %}
+<section class="auth-card auth-card-wide">
+    <div class="auth-brand">
+        <span class="brand-pin"></span>
+        <h1>TEKI</h1>
+    </div>
+    <h2>Crear cuenta</h2>
+
+    <form method="post" class="form" novalidate>
+        <div class="role-switch">
+            <label><input type="radio" name="rol" value="cliente" checked> <span>Soy cliente</span></label>
+            <label><input type="radio" name="rol" value="conductor"> <span>Soy conductor</span></label>
+        </div>
+
+        <div class="grid-2">
+            <label class="field"><span>Nombre *</span><input type="text" name="nombre" required></label>
+            <label class="field"><span>Apellido *</span><input type="text" name="apellido" required></label>
+            <label class="field"><span>CI *</span><input type="text" name="ci" required></label>
+            <label class="field"><span>Teléfono</span><input type="tel" name="telefono"></label>
+        </div>
+        <label class="field"><span>Correo electrónico *</span><input type="email" name="correo" required></label>
+
+        <div class="grid-2">
+            <label class="field"><span>Contraseña *</span><input type="password" name="contrasena" minlength="6" required></label>
+            <label class="field"><span>Confirmar contraseña *</span><input type="password" name="confirmar" minlength="6" required></label>
+        </div>
+
+        <div id="campos-cliente">
+            <label class="field"><span>Dirección</span><input type="text" name="direccion"></label>
+        </div>
+
+        <div id="campos-conductor" hidden>
+            <div class="grid-2">
+                <label class="field"><span>N.º de licencia *</span><input type="text" name="licencia"></label>
+                <label class="field"><span>Vehículo (marca, modelo, placa)</span><input type="text" name="descripcion_vehiculo" placeholder="Honda Wave 110 - 1234-ABC"></label>
+            </div>
+            <p class="muted">Tu cuenta quedará pendiente hasta que un administrador valide tus documentos.</p>
+        </div>
+
+        <button class="btn btn-primary btn-block" type="submit">Registrarme</button>
+    </form>
+
+    <p class="auth-links">¿Ya tienes cuenta? <a href="{{ url_for('auth.login') }}">Iniciar sesión</a></p>
+</section>
+{% endblock %}
