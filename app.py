@@ -32,6 +32,9 @@ def create_app() -> Flask:
     return app
 
 
+# --- LÍNEA CLAVE PARA RENDER ---
+# Creamos la app a nivel global para que Gunicorn la encuentre con 'app:app'
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
     app.run(debug=True)
